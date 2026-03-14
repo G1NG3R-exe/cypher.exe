@@ -655,7 +655,6 @@
       font-family: 'Share Tech Mono', monospace;
     }
 
-    /* START */
     #start {
       position: fixed;
       inset: 0;
@@ -1114,6 +1113,56 @@
       background: #f44;
       color: #000;
     }
+
+    #loadscreen {
+      position: fixed;
+      inset: 0;
+      background: #000514;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 250;
+    }
+
+    #loadscreen.on {
+      display: flex;
+    }
+
+    #load-title {
+      font-family: 'Orbitron', monospace;
+      font-size: 36px;
+      font-weight: 900;
+      color: #0ff;
+      letter-spacing: 8px;
+      margin-bottom: 28px;
+      animation: pu 1s infinite;
+    }
+
+    #load-bar-bg {
+      width: 320px;
+      height: 6px;
+      background: rgba(0, 255, 255, .12);
+      border-radius: 3px;
+      overflow: hidden;
+      margin-bottom: 16px;
+    }
+
+    #load-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #0ff, #00ff88);
+      border-radius: 3px;
+      width: 0%;
+      transition: width .3s;
+    }
+
+    #load-status {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 3px;
+      color: rgba(0, 255, 255, .5);
+      min-height: 18px;
+    }
   </style>
 </head>
 
@@ -1189,12 +1238,16 @@
     <div id="qfb"></div>
     <div id="qhint">GET 5 CORRECT TO RECHARGE · WRONG ANSWER RESETS COUNT</div>
   </div>
-
-  <!-- START SCREEN -->
+  <div id="loadscreen">
+    <div id="load-title">CYPHER.EXE</div>
+    <div id="load-bar-bg">
+      <div id="load-bar-fill"></div>
+    </div>
+    <div id="load-status">INITIALIZING...</div>
+  </div>
   <div id="start">
     <div id="stitle">CYPHER.EXE</div>
     <div id="ssub">CYBERPUNK BUILD &amp; BLAST</div>
-    <!-- Phase 0: mode select -->
     <div id="phase-mode">
       <div id="mode-cards">
         <div class="mcard" onclick="selectMode('private')">
@@ -1208,11 +1261,10 @@
           <div class="mcard-desc">1v1 real players.<br>Build defenses.<br>First to 0 HP loses.</div>
         </div>
       </div>
+      <div
+        style="font-family:'Share Tech Mono',monospace;font-size:10px;color:rgba(255,255,255,.25);letter-spacing:2px">
+        Made by Alex Shmulevich and Matthew Krasaev</div>
     </div>
-
-
-    Made by Alex Shmulevich and Matthew Krasaev
-    <!-- Phase 1a: private -->
     <div id="phase-private">
       <div id="sctrl">
         <h3>CONTROLS</h3>
@@ -1227,15 +1279,15 @@
         <div class="cr"><span>Edit Wall</span><span><span class="ck">Q</span> while aiming at wall</span></div>
         <div class="cr"><span>Reset Wall</span><span><span class="ck">Scroll ↓</span> while aiming at wall</span></div>
         <div class="cr"><span>Recharge</span><span><span class="ck">E</span> near cyan terminal</span></div>
+        <div class="cr"><span>Flashlight</span><span><span class="ck">G</span> toggle on/off</span></div>
       </div>
       <div id="svoc">
         <h3>TODAY'S VOCABULARY (10 WORDS)</h3>
         <div id="schips"></div>
       </div>
-      <button class="sbtn" onclick="bootPrivate()">BOOT SYSTEM</button>
+      <button class="sbtn" onclick="launchPrivate()">BOOT SYSTEM</button>
       <br><button class="sbtn sec" style="margin-top:14px" onclick="backToMode()">← BACK</button>
     </div>
-    <!-- Phase 1b: public -->
     <div id="phase-public">
       <div class="pub-section">
         <h3>YOUR CALLSIGN</h3><input class="cyph-input" id="pub-username" placeholder="Username (2–16 chars)"
@@ -1248,16 +1300,13 @@
       <div class="pub-divider"><span>OR</span></div>
       <div class="pub-section">
         <h3>JOIN ROOM</h3>
-        <div class="pub-row">
-          <input class="cyph-input code-input" id="join-code" placeholder="XXXXXX" maxlength="6" autocomplete="off"
-            spellcheck="false">
-          <button class="sbtn" style="margin-top:0;padding:11px 24px" onclick="joinRoom()">JOIN →</button>
-        </div>
+        <div class="pub-row"><input class="cyph-input code-input" id="join-code" placeholder="XXXXXX" maxlength="6"
+            autocomplete="off" spellcheck="false"><button class="sbtn" style="margin-top:0;padding:11px 24px"
+            onclick="joinRoom()">JOIN →</button></div>
       </div>
       <div class="err-msg" id="pub-err"></div>
       <button class="sbtn sec" style="margin-top:18px" onclick="backToMode()">← BACK</button>
     </div>
-    <!-- Phase 2: lobby -->
     <div id="phase-lobby">
       <div
         style="font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:4px;color:rgba(0,255,255,.45);margin-bottom:4px;">
@@ -1280,16 +1329,19 @@
       <div id="lobby-countdown"></div>
     </div>
   </div>
-
   <div id="gover">
     <div id="gotit">ELIMINATED</div>
-    <div id="gostats"></div>
-    <button id="gobtn" onclick="location.reload()">PLAY AGAIN</button>
+    <div id="gostats"></div><button id="gobtn" onclick="location.reload()">PLAY AGAIN</button>
   </div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/libs/fflate.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/FBXLoader.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/SkeletonUtils.js"></script>
   <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+
   <script>
+    // ── VOCAB ──────────────────────────────────────────────────
     const VOCAB = [
       { w: "MALWARE", d: "Software intentionally designed to disrupt, damage, or gain unauthorized access to computer systems." },
       { w: "FIREWALL", d: "A security system that monitors and filters incoming and outgoing network traffic based on predefined rules." },
@@ -1309,17 +1361,12 @@
     let gameMode = null, socket = null, mySocketId = null, myUsername = '', currentRoomCode = '';
     let isMultiplayer = false, opponentMesh = null, opponentBullets = [], opponentHP = 100;
     let netUpdateTimer = 0;
-
-    const SOCKET_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-      ? 'http://localhost:3000' : window.location.origin;
-
-    // Prime AudioContext on very first user gesture so it is ready by game start
+    const SOCKET_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? 'http://localhost:3000' : window.location.origin;
     let tonePrimed = false;
     async function primeAudio() { if (tonePrimed) return; tonePrimed = true; try { await Tone.start(); } catch (e) { } }
 
     function selectMode(mode) {
-      primeAudio(); // inside a real click handler — satisfies browser autoplay policy
-      gameMode = mode;
+      primeAudio(); gameMode = mode;
       document.getElementById('phase-mode').style.display = 'none';
       if (mode === 'private') { document.getElementById('phase-private').style.display = 'flex'; }
       else { document.getElementById('phase-public').style.display = 'flex'; connectSocket(); }
@@ -1333,49 +1380,59 @@
 
     function connectSocket() {
       if (socket && socket.connected) return;
-      // polling first so it works on Railway/Render, then upgrades to WS if available
       socket = io(SOCKET_URL, { transports: ['polling', 'websocket'] });
       socket.on('connect', () => { mySocketId = socket.id; });
       socket.on('connect_error', () => showPubErr('Cannot connect to server.'));
       socket.on('room_update', ({ players, code }) => updateLobbyUI(players, code));
       socket.on('game_start', ({ players }) => startMPGame(players));
       socket.on('opponent_update', ({ position, rotation }) => {
-        if (opponentMesh) { opponentMesh.position.set(position.x, 0, position.z); opponentMesh.rotation.y = rotation.yaw; }
+        if (opponentMesh) {
+          opponentMesh.position.set(position.x, 0, position.z);
+          opponentMesh.rotation.y = rotation.yaw + Math.PI;
+        }
       });
       socket.on('opponent_shoot', ({ position, direction }) => spawnOppBullet(position, direction));
       socket.on('opponent_block_placed', ({ position, colorHex }) => placeOppBlock(position, colorHex));
       socket.on('opponent_block_removed', ({ index }) => {
-        if (index >= 0 && index < placedBlocks.length) { const pb = placedBlocks[index]; scene.remove(pb.mesh); scene.remove(pb.wire); placedBlocks.splice(index, 1); }
+        if (index >= 0 && index < placedBlocks.length) {
+          const pb = placedBlocks[index]; scene.remove(pb.mesh); scene.remove(pb.wire); placedBlocks.splice(index, 1);
+        }
+      });
+      socket.on('opponent_wall_placed', ({ cx, cy, cz, axis }) => {
+        const tiles = new Array(9).fill(true);
+        const grp = buildWallSlab(cx, cy, cz, axis);
+        scene.add(grp);
+        placedWalls.push({ group: grp, tiles, cx, cy, cz, axis, isOpponent: true });
+      });
+      socket.on('opponent_wall_edited', ({ index, tiles }) => {
+        if (index >= 0 && index < placedWalls.length) {
+          const w = placedWalls[index];
+          w.tiles = [...tiles];
+          scene.remove(w.group);
+          w.group = tiles.every(t => t) ? buildWallSlab(w.cx, w.cy, w.cz, w.axis) : buildWallSegmented(w.cx, w.cy, w.cz, w.axis, tiles);
+          scene.add(w.group);
+        }
       });
       socket.on('you_were_hit', ({ hp }) => { pHP = hp; updateUI(); flashHit(); if (pHP <= 0) doGameOver(true, false, '', ''); });
       socket.on('hit_confirmed', ({ opponentHp }) => { opponentHP = opponentHp; document.getElementById('opnum').textContent = Math.round(opponentHp); });
       socket.on('game_over', ({ winner, winnerName, loserName }) => doGameOver(true, winner === mySocketId, winnerName, loserName));
       socket.on('opponent_disconnected', ({ username }) => doGameOver(true, true, myUsername, username, true));
     }
-
     function showPubErr(m) { document.getElementById('pub-err').textContent = m; }
     function getUname() { return (document.getElementById('pub-username').value || '').trim(); }
-
     function createRoom() {
       const u = getUname(); if (u.length < 2) { showPubErr('Enter a username (min 2 chars)'); return; }
       showPubErr(''); myUsername = u;
-      socket.emit('create_room', { username: u }, (res) => {
-        if (res.error) { showPubErr(res.error); return; }
-        currentRoomCode = res.code; showLobbyScreen(res.code, u, null);
-      });
+      socket.emit('create_room', { username: u }, (res) => { if (res.error) { showPubErr(res.error); return; } currentRoomCode = res.code; showLobbyScreen(res.code, u, null); });
     }
     function joinRoom() {
       const u = getUname(), code = (document.getElementById('join-code').value || '').toUpperCase().trim();
       if (u.length < 2) { showPubErr('Enter a username (min 2 chars)'); return; }
       if (code.length !== 6) { showPubErr('Enter a valid 6-character room code'); return; }
       showPubErr(''); myUsername = u;
-      socket.emit('join_room', { username: u, code }, (res) => {
-        if (res.error) { showPubErr(res.error); return; }
-        currentRoomCode = res.code; showLobbyScreen(res.code, null, u);
-      });
+      socket.emit('join_room', { username: u, code }, (res) => { if (res.error) { showPubErr(res.error); return; } currentRoomCode = res.code; showLobbyScreen(res.code, null, u); });
     }
     window.createRoom = createRoom; window.joinRoom = joinRoom;
-
     function showLobbyScreen(code, hostName, joinName) {
       document.getElementById('phase-public').style.display = 'none';
       document.getElementById('phase-lobby').style.display = 'flex';
@@ -1394,13 +1451,136 @@
         const iv = setInterval(() => { n--; if (n <= 0) { clearInterval(iv); document.getElementById('lobby-countdown').textContent = ''; } else document.getElementById('lobby-countdown').textContent = n; }, 1000);
       }
     }
-    function copyCode() {
-      navigator.clipboard.writeText(currentRoomCode).then(() => {
-        document.getElementById('lobby-copy').textContent = '✓ COPIED!';
-        setTimeout(() => document.getElementById('lobby-copy').textContent = 'CLICK TO COPY · SHARE WITH OPPONENT', 2000);
+    function copyCode() { navigator.clipboard.writeText(currentRoomCode).then(() => { document.getElementById('lobby-copy').textContent = '✓ COPIED!'; setTimeout(() => document.getElementById('lobby-copy').textContent = 'CLICK TO COPY · SHARE WITH OPPONENT', 2000); }); }
+    window.copyCode = copyCode;
+
+    // ── FBX ZOMBIE SYSTEM ─────────────────────────────────────
+    const fbxLoader = new THREE.FBXLoader();
+    const zombieClock = new THREE.Clock();
+    let zombieBaseMesh = null, zombieAnimClips = {}, zombieMixers = [], zombieModelsReady = false;
+    const ZS = { IDLE: 'idle', WALK: 'walk', RUN: 'run', ATTACK: 'attack', DEATH: 'death' };
+
+    function setLoadStatus(text, pct) {
+      document.getElementById('load-status').textContent = text;
+      document.getElementById('load-bar-fill').style.width = pct + '%';
+    }
+
+    function loadZombieAssets(onReady) {
+      const basePath = 'zombies/';
+      setLoadStatus('LOADING BASE MESH...', 5);
+      fbxLoader.load(basePath + 'zombie walk.fbx', (fbx) => {
+        fbx.scale.setScalar(0.013);
+        fbx.traverse(c => {
+          if (c.isSkinnedMesh) { c.castShadow = true; c.frustumCulled = false; c.visible = true; }
+        });
+        zombieBaseMesh = fbx;
+        if (fbx.animations.length > 0) { zombieAnimClips.walk = fbx.animations[0]; zombieAnimClips.walk.name = 'walk'; }
+        const animsToLoad = [
+          { key: 'attack', file: 'zombie attack.fbx' },
+          { key: 'bite', file: 'zombie biting.fbx' },
+          { key: 'crawl', file: 'zombie crawl.fbx' },
+          { key: 'death', file: 'zombie death.fbx' },
+          { key: 'dying', file: 'zombie dying.fbx' },
+          { key: 'idle', file: 'zombie idle.fbx' },
+        ];
+        let loaded = 0; const total = animsToLoad.length;
+        animsToLoad.forEach(({ key, file }) => {
+          fbxLoader.load(basePath + file, (animFbx) => {
+            if (animFbx.animations.length > 0) {
+              const clip = animFbx.animations[0].clone(); clip.name = key;
+              const boneNames = new Set();
+              zombieBaseMesh.traverse(c => { if (c.isBone) boneNames.add(c.name); });
+              clip.tracks = clip.tracks.filter(track => boneNames.has(track.name.split('.')[0]));
+              zombieAnimClips[key] = clip;
+            }
+            loaded++; setLoadStatus('LOADING ' + key.toUpperCase() + '...', 20 + Math.round((loaded / total) * 75));
+            if (loaded === total) { zombieModelsReady = true; setLoadStatus('ZOMBIE ASSETS READY', 100); setTimeout(onReady, 300); }
+          }, undefined, (err) => {
+            console.warn('Could not load ' + file);
+            loaded++;
+            if (loaded === total) { zombieModelsReady = true; setLoadStatus('READY', 100); setTimeout(onReady, 300); }
+          });
+        });
+      }, undefined, (err) => {
+        console.error('Failed to load base zombie mesh:', err);
+        zombieModelsReady = false; setLoadStatus('ZOMBIE MESH NOT FOUND — USING FALLBACK', 100); setTimeout(onReady, 600);
       });
     }
-    window.copyCode = copyCode;
+
+    function cloneZombieFBX() {
+      const clone = THREE.SkeletonUtils.clone(zombieBaseMesh);
+      clone.traverse(c => {
+        if (c.isSkinnedMesh) {
+          c.frustumCulled = false; c.castShadow = true; c.visible = true;
+          if (Array.isArray(c.material)) {
+            c.material = c.material.map(m => { const nm = m.clone(); nm.skinning = true; nm.needsUpdate = true; return nm; });
+          } else {
+            const nm = c.material.clone(); nm.skinning = true; nm.needsUpdate = true; c.material = nm;
+          }
+        }
+      });
+      return clone;
+    }
+
+    function createZombieAnimController(model) {
+      const mixer = new THREE.AnimationMixer(model);
+      const actions = {};
+      // Track direction for ping-pong speed control
+      const dirs = {};
+
+      Object.entries(zombieAnimClips).forEach(([key, clip]) => {
+        try {
+          const action = mixer.clipAction(clip);
+          action.clampWhenFinished = true;
+          if (key === 'death' || key === 'dying') {
+            action.loop = THREE.LoopOnce;
+          } else {
+            action.loop = THREE.LoopPingPong;
+            action.repetitions = Infinity;
+          }
+          action.timeScale = 1.0;
+          actions[key] = action;
+          dirs[key] = 1;
+        } catch (e) { console.warn('Could not create action for', key); }
+      });
+
+      // Speed up reverse pass so it looks natural
+      mixer.addEventListener('loop', (ev) => {
+        const name = ev.action.getClip().name;
+        if (name === 'death' || name === 'dying') return;
+        dirs[name] = dirs[name] === 1 ? -1 : 1;
+        ev.action.timeScale = dirs[name] === -1 ? 4.0 : 1.0;
+      });
+
+      let currentState = null, locked = false;
+
+      function play(state, force) {
+        if (locked && !force) return;
+        if (currentState === state) return;
+        const prev = actions[currentState], next = actions[state];
+        if (!next) { if (state !== 'walk' && actions.walk) play('walk'); return; }
+        if (prev) prev.fadeOut(0.3);
+        next.reset().fadeIn(0.3).play();
+        next.timeScale = 1.0;
+        dirs[state] = 1;
+        currentState = state;
+      }
+
+      function die() {
+        locked = true;
+        const deathAnim = actions.dying || actions.death;
+        if (deathAnim) {
+          Object.values(actions).forEach(a => { if (a !== deathAnim) a.fadeOut(0.15); });
+          deathAnim.reset().setEffectiveTimeScale(1.0).fadeIn(0.15).play();
+          currentState = 'dying';
+        }
+      }
+
+      const moveStyles = ['walk', 'run', 'crawl'].filter(k => actions[k]);
+      const chosenMove = moveStyles[Math.floor(Math.random() * moveStyles.length)] || 'walk';
+      play(chosenMove);
+      return { mixer, actions, play, die, chosenMove };
+    }
 
     // ── QUIZ ──────────────────────────────────────────────────
     let quizActive = false, qC = 0, qS = 0, qLocked = false, curQ = null, quizCB = null;
@@ -1409,11 +1589,7 @@
       const opts = [...VOCAB.filter((_, j) => j !== i).sort(() => Math.random() - .5).slice(0, 3), right].sort(() => Math.random() - .5);
       return { word: right.w, opts, ci: opts.indexOf(right) };
     }
-    function startQuiz(cb) {
-      quizActive = true; qC = 0; qS = 0; qLocked = false; quizCB = cb;
-      document.getElementById('quiz').classList.add('on');
-      if (document.pointerLockElement) document.exitPointerLock(); nextQ();
-    }
+    function startQuiz(cb) { quizActive = true; qC = 0; qS = 0; qLocked = false; quizCB = cb; document.getElementById('quiz').classList.add('on'); if (document.pointerLockElement) document.exitPointerLock(); nextQ(); }
     function nextQ() {
       curQ = genQ(); qLocked = false;
       document.getElementById('qcn').textContent = qC; document.getElementById('qsn').textContent = qS; document.getElementById('qfb').textContent = '';
@@ -1443,7 +1619,8 @@
     let gameRunning = false, isDead = false;
     let pHP = 100, pEN = 100, score = 0, kills = 0, wave = 1;
     const ENEMIES = [], BULLETS = [], STATIONS = [], bldgs = [], solidList = [], placedBlocks = [];
-    const keys = {}; let pitch = 0, yaw = 0, mdx = 0, mdy = 0, shooting = false, sCD = 0, nearSt = false, nearStObj = null;
+    const keys = {};
+    let pitch = 0, yaw = 0, mdx = 0, mdy = 0, shooting = false, sCD = 0, nearSt = false, nearStObj = null;
     const WALL = 46;
     let tool = 1, blockStock = 50;
     const BS = 2;
@@ -1451,27 +1628,26 @@
     const BLK_MATS = [new THREE.Color(0x1a6aaa), new THREE.Color(0x8a1a6a), new THREE.Color(0x1a8a3a), new THREE.Color(0xaa6a1a), new THREE.Color(0x6a1aaa)];
     let handGroup = null, gunMesh = null, blockHandMesh = null, handSwing = 0;
 
-    function bootPrivate() {
-      primeAudio(); // also a direct click — belt-and-suspenders
-      initMusic();
+    function launchPrivate() {
+      primeAudio();
       document.getElementById('start').style.display = 'none';
-      isMultiplayer = false; initR(); buildWorld(); buildStations(); buildFPHand(); doWave(1);
-      gameRunning = true; gc.requestPointerLock(); requestAnimationFrame(loop);
+      document.getElementById('loadscreen').classList.add('on');
+      loadZombieAssets(() => {
+        document.getElementById('loadscreen').classList.remove('on');
+        initMusic(); isMultiplayer = false;
+        initR(); buildWorld(); buildStations(); buildFPHand(); doWave(1);
+        gameRunning = true; gc.requestPointerLock(); requestAnimationFrame(loop);
+      });
     }
-    window.bootPrivate = bootPrivate;
+    window.launchPrivate = launchPrivate;
+    window.bootPrivate = launchPrivate;
 
     function startMPGame(players) {
-      // Called from socket event (not a click), so we rely on primeAudio() having run earlier
-      initMusic();
-      document.getElementById('start').style.display = 'none';
+      initMusic(); document.getElementById('start').style.display = 'none';
       isMultiplayer = true; initR(); buildWorld(); buildStations(); buildFPHand();
       const me = players.find(p => p.id === mySocketId), opp = players.find(p => p.id !== mySocketId);
       if (me) { camera.position.set(me.position.x, me.position.y, me.position.z); yaw = me.rotation.yaw || 0; }
-      if (opp) {
-        document.getElementById('oppill').style.display = 'block';
-        document.getElementById('oplbl').textContent = opp.username + ' HP';
-        spawnOppMesh(opp.position, opp.rotation);
-      }
+      if (opp) { document.getElementById('oppill').style.display = 'block'; document.getElementById('oplbl').textContent = opp.username + ' HP'; spawnOppMesh(opp.position, opp.rotation); }
       document.getElementById('wvpill').style.display = 'none';
       document.getElementById('roombadge').textContent = 'ROOM: ' + currentRoomCode;
       document.getElementById('roombadge').style.display = 'block';
@@ -1481,7 +1657,8 @@
 
     function spawnOppMesh(position, rotation) {
       const g = new THREE.Group();
-      const bm = new THREE.MeshLambertMaterial({ color: 0xff00cc }), em = new THREE.MeshBasicMaterial({ color: 0xff44aa });
+      const bm = new THREE.MeshLambertMaterial({ color: 0xff00cc });
+      const em = new THREE.MeshBasicMaterial({ color: 0xff44aa });
       const body = new THREE.Mesh(new THREE.BoxGeometry(.75, 1, .5), bm); body.position.y = .65; g.add(body);
       const head = new THREE.Mesh(new THREE.BoxGeometry(.45, .45, .45), bm); head.position.y = 1.55; g.add(head);
       [-1, 1].forEach(s => {
@@ -1490,7 +1667,8 @@
         const arm = new THREE.Mesh(new THREE.BoxGeometry(.15, .55, .15), bm); arm.position.set(s * .48, .65, 0); g.add(arm);
       });
       const pl = new THREE.PointLight(0xff00cc, 1.5, 6); pl.position.y = 1; g.add(pl);
-      g.position.set(position.x, 0, position.z); if (rotation) g.rotation.y = rotation.yaw || 0;
+      g.position.set(position.x, 0, position.z);
+      g.rotation.y = (rotation ? rotation.yaw || 0 : 0) + Math.PI;
       scene.add(g); opponentMesh = g;
     }
     function spawnOppBullet(position, direction) {
@@ -1503,28 +1681,27 @@
     function placeOppBlock(position, colorHex) {
       const mat = new THREE.MeshLambertMaterial({ color: colorHex, transparent: true, opacity: .75 });
       const mesh = new THREE.Mesh(new THREE.BoxGeometry(BS, BS, BS), mat); mesh.position.set(position.x, position.y, position.z); scene.add(mesh);
-      const wire = new THREE.Mesh(new THREE.BoxGeometry(BS + .03, BS + .03, BS + .03), new THREE.MeshBasicMaterial({ color: 0xff00cc, wireframe: true, transparent: true, opacity: .3 }));
-      wire.position.set(position.x, position.y, position.z); scene.add(wire);
+      const wire = new THREE.Mesh(new THREE.BoxGeometry(BS + .03, BS + .03, BS + .03), new THREE.MeshBasicMaterial({ color: 0xff00cc, wireframe: true, transparent: true, opacity: .3 })); wire.position.set(position.x, position.y, position.z); scene.add(wire);
       placedBlocks.push({ mesh, wire, box: { x: position.x, z: position.z, hw: BS / 2, hz: BS / 2, minY: position.y - BS / 2, maxY: position.y + BS / 2 }, isOpponent: true });
     }
 
     function initR() {
       renderer = new THREE.WebGLRenderer({ canvas: gc, antialias: true });
       renderer.setSize(innerWidth, innerHeight); renderer.setClearColor(0x000814);
-      renderer.setPixelRatio(Math.min(devicePixelRatio, 2)); renderer.shadowMap.enabled = true;
+      renderer.setPixelRatio(Math.min(devicePixelRatio, 2)); renderer.shadowMap.enabled = false;
       scene = new THREE.Scene(); scene.fog = new THREE.Fog(0x000814, 18, 90);
       camera = new THREE.PerspectiveCamera(80, innerWidth / innerHeight, 0.05, 200); camera.position.set(0, 1.7, 0);
       scene.add(new THREE.AmbientLight(0x001122, 1));
       const dl = new THREE.DirectionalLight(0x0033ff, .5); dl.position.set(10, 20, 10); scene.add(dl);
     }
+
     function addSolid(x, cy, z, w, h, d) { solidList.push({ x, z, hw: w / 2, hz: d / 2, minY: cy - h / 2, maxY: cy + h / 2 }); }
+
     function buildWorld() {
       const fl = new THREE.Mesh(new THREE.PlaneGeometry(WALL * 2, WALL * 2, 40, 40), new THREE.MeshLambertMaterial({ color: 0x040810 })); fl.rotation.x = -Math.PI / 2; scene.add(fl);
       scene.add(new THREE.GridHelper(WALL * 2, 48, 0x001a33, 0x000d1a));
       const wm = new THREE.MeshLambertMaterial({ color: 0x071422 });
-      [[0, 5, -WALL, WALL * 2, 10, 1], [0, 5, WALL, WALL * 2, 10, 1], [-WALL, 5, 0, 1, 10, WALL * 2], [WALL, 5, 0, 1, 10, WALL * 2]].forEach(([x, y, z, w, h, d]) => {
-        const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), wm); m.position.set(x, y, z); scene.add(m); addSolid(x, y, z, w, h, d);
-      });
+      [[0, 5, -WALL, WALL * 2, 10, 1], [0, 5, WALL, WALL * 2, 10, 1], [-WALL, 5, 0, 1, 10, WALL * 2], [WALL, 5, 0, 1, 10, WALL * 2]].forEach(([x, y, z, w, h, d]) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), wm); m.position.set(x, y, z); scene.add(m); addSolid(x, y, z, w, h, d); });
       const bPos = [[20, 20], [20, -20], [-20, 20], [-20, -20], [34, 5], [-34, -5], [5, 34], [-5, -34], [28, 28], [-28, 28], [28, -28], [-28, -28], [14, 10], [-14, -10], [10, -14], [-10, 14]];
       const bcs = [0x001a3a, 0x0a0020, 0x001422, 0x0a1a00, 0x200010], ncs = [0x0088ff, 0x00ffcc, 0xff00cc, 0x00ff44, 0xffaa00];
       bPos.forEach(([x, z], i) => {
@@ -1535,12 +1712,12 @@
         const nm = new THREE.MeshBasicMaterial({ color: ncs[i % ncs.length] });
         [h, h * .55].forEach(ty => { const t = new THREE.Mesh(new THREE.BoxGeometry(w + .1, .12, w + .1), nm); t.position.set(x, ty, z); scene.add(t); });
       });
-      const ca = new THREE.Mesh(new THREE.PlaneGeometry(WALL * 2, WALL * 2, 20, 20), new THREE.MeshBasicMaterial({ color: 0x000a18, wireframe: true, opacity: .07, transparent: true }));
-      ca.rotation.x = Math.PI / 2; ca.position.y = 17; scene.add(ca);
+      const ca = new THREE.Mesh(new THREE.PlaneGeometry(WALL * 2, WALL * 2, 20, 20), new THREE.MeshBasicMaterial({ color: 0x000a18, wireframe: true, opacity: .07, transparent: true })); ca.rotation.x = Math.PI / 2; ca.position.y = 17; scene.add(ca);
       ghostMesh = new THREE.Mesh(new THREE.BoxGeometry(BS, BS, BS), new THREE.MeshBasicMaterial({ color: 0x00ff88, transparent: true, opacity: .28, depthWrite: false }));
       ghostWire = new THREE.Mesh(new THREE.BoxGeometry(BS + .02, BS + .02, BS + .02), new THREE.MeshBasicMaterial({ color: 0x00ff88, wireframe: true, transparent: true, opacity: .7 }));
       ghostMesh.visible = ghostWire.visible = false; scene.add(ghostMesh); scene.add(ghostWire);
     }
+
     function buildStations() {
       [[8, 6], [-8, -6], [6, -10], [-6, 10], [15, -15], [0, 12], [12, 0]].forEach(([x, z]) => {
         const g = new THREE.Group(), bm = new THREE.MeshLambertMaterial({ color: 0x001a33 }), gm = new THREE.MeshBasicMaterial({ color: 0x00ffff });
@@ -1551,6 +1728,7 @@
         g.position.set(x, 0, z); g.userData.pl = pl; scene.add(g); STATIONS.push(g);
       });
     }
+
     function buildFPHand() {
       handGroup = new THREE.Group(); camera.add(handGroup); scene.add(camera);
       gunMesh = new THREE.Group();
@@ -1559,12 +1737,36 @@
       const gb = new THREE.Mesh(new THREE.BoxGeometry(.06, .08, .28), new THREE.MeshLambertMaterial({ color: 0x222233 })); gb.position.set(.17, -.12, -.28); gunMesh.add(gb);
       const bar = new THREE.Mesh(new THREE.CylinderGeometry(.012, .012, .22, 8), new THREE.MeshBasicMaterial({ color: 0x444455 })); bar.rotation.x = Math.PI / 2; bar.position.set(.17, -.11, -.22); gunMesh.add(bar);
       const acc = new THREE.Mesh(new THREE.BoxGeometry(.025, .025, .05), new THREE.MeshBasicMaterial({ color: 0xff8800 })); acc.position.set(.17, -.09, -.15); gunMesh.add(acc);
+      // Flashlight barrel attachment (visual only)
+      const flBody = new THREE.Mesh(new THREE.CylinderGeometry(.013, .013, .08, 8), new THREE.MeshLambertMaterial({ color: 0x111111 })); flBody.rotation.x = Math.PI / 2; flBody.position.set(.17, -.135, -.19); gunMesh.add(flBody);
+      const lens = new THREE.Mesh(new THREE.CircleGeometry(0.013, 8), new THREE.MeshBasicMaterial({ color: 0x334455, side: THREE.DoubleSide })); lens.position.set(.17, -.135, -.235); lens.rotation.y = Math.PI; gunMesh.add(lens);
+      window.flashlightLens = lens;
       handGroup.add(gunMesh);
+
       blockHandMesh = new THREE.Group();
       const bhand = new THREE.Mesh(new THREE.BoxGeometry(.09, .09, .25), armM); bhand.position.set(.13, -.14, -.28); blockHandMesh.add(bhand);
       const held = new THREE.Mesh(new THREE.BoxGeometry(.13, .13, .13), new THREE.MeshLambertMaterial({ color: 0x3a6aaa })); held.position.set(.18, -.08, -.24); blockHandMesh.add(held);
       const heldW = new THREE.Mesh(new THREE.BoxGeometry(.135, .135, .135), new THREE.MeshBasicMaterial({ color: 0x00ff88, wireframe: true })); heldW.position.set(.18, -.08, -.24); blockHandMesh.add(heldW);
       blockHandMesh.visible = false; handGroup.add(blockHandMesh);
+
+      // Flashlight — NO castShadow to prevent freeze
+      window.flashlightSpot = new THREE.SpotLight(0xffeedd, 0, 35, Math.PI * 0.10, 0.35, 1.0);
+      window.flashlightSpot.castShadow = false;
+      window.flashlightSpot.position.set(0, 0, 0);
+      window.flashlightSpot.target.position.set(0, 0, -1);
+      handGroup.add(window.flashlightSpot);
+      handGroup.add(window.flashlightSpot.target);
+
+      // Fill point light for nearby surfaces
+      window.flashlightFill = new THREE.PointLight(0xffeedd, 0, 6, 2);
+      window.flashlightFill.castShadow = false;
+      window.flashlightFill.position.set(0, 0, -0.3);
+      handGroup.add(window.flashlightFill);
+
+      window.flashlightOn = true;
+      if (window.flashlightSpot) window.flashlightSpot.intensity = 20;
+      if (window.flashlightFill) window.flashlightFill.intensity = 3;
+      if (window.flashlightLens) window.flashlightLens.material.color.setHex(0xffffff);
     }
 
     // ── BUILDING ──────────────────────────────────────────────
@@ -1617,17 +1819,26 @@
     // ── ENEMIES ───────────────────────────────────────────────
     const ECOLS = [0xff2020, 0xff6600, 0xcc00ff, 0xff0088, 0x00ff88];
     function spawnEnemy(x, z) {
-      const g = new THREE.Group(), ci = Math.floor(Math.random() * ECOLS.length);
-      const bm = new THREE.MeshLambertMaterial({ color: ECOLS[ci] }), em = new THREE.MeshBasicMaterial({ color: 0xff0000 });
-      const body = new THREE.Mesh(new THREE.BoxGeometry(.75, 1, .5), bm); body.position.y = .65; g.add(body);
-      const head = new THREE.Mesh(new THREE.BoxGeometry(.45, .45, .45), bm); head.position.y = 1.55; g.add(head);
-      [-1, 1].forEach(s => {
-        [new THREE.Mesh(new THREE.BoxGeometry(.08, .08, .12), em), new THREE.Mesh(new THREE.BoxGeometry(.18, .55, .18), bm), new THREE.Mesh(new THREE.BoxGeometry(.15, .55, .15), bm)].forEach((m, mi) => {
-          m.position.set(s * (mi === 0 ? .12 : mi === 1 ? .19 : .48), mi === 0 ? 1.6 : mi === 1 ? .28 : .65, mi === 0 ? .25 : 0); g.add(m);
-        });
-      });
-      const pl = new THREE.PointLight(ECOLS[ci], 1, 5); pl.position.y = 1; g.add(pl);
-      g.position.set(x, 0, z); g.userData = { hp: 2, spd: .018 + wave * .004, dead: false }; scene.add(g); ENEMIES.push(g);
+      if (zombieModelsReady && zombieBaseMesh) {
+        const model = cloneZombieFBX(); model.position.set(x, 0, z);
+        const tints = [0x001100, 0x110000, 0x000011, 0x110011, 0x001111];
+        model.traverse(c => { if (c.isSkinnedMesh) { c.material = c.material.clone(); c.material.emissive = new THREE.Color(tints[wave % tints.length]); c.material.emissiveIntensity = 0.3; } });
+        const ctrl = createZombieAnimController(model);
+        let speedMult = 1.0;
+        if (ctrl.chosenMove === 'crawl') speedMult = 0.5;
+        if (ctrl.chosenMove === 'run') speedMult = 1.8;
+        const pointLight = new THREE.PointLight(0xff2200, 0.8, 4); pointLight.position.y = 1.2; model.add(pointLight);
+        model.userData = { hp: 2, spd: (0.018 + wave * 0.004) * speedMult, dead: false, ctrl, state: ZS.WALK, deathTimer: -1 };
+        scene.add(model); ENEMIES.push(model); zombieMixers.push(ctrl.mixer);
+      } else {
+        const g = new THREE.Group(); const ci = Math.floor(Math.random() * ECOLS.length);
+        const bm = new THREE.MeshLambertMaterial({ color: ECOLS[ci] }), em = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+        const body = new THREE.Mesh(new THREE.BoxGeometry(.75, 1, .5), bm); body.position.y = .65; g.add(body);
+        const head = new THREE.Mesh(new THREE.BoxGeometry(.45, .45, .45), bm); head.position.y = 1.55; g.add(head);
+        [-1, 1].forEach(s => { const eye = new THREE.Mesh(new THREE.BoxGeometry(.08, .08, .12), em); eye.position.set(s * .12, 1.6, .25); g.add(eye); const leg = new THREE.Mesh(new THREE.BoxGeometry(.18, .55, .18), bm); leg.position.set(s * .19, .28, 0); g.add(leg); const arm = new THREE.Mesh(new THREE.BoxGeometry(.15, .55, .15), bm); arm.position.set(s * .48, .65, 0); g.add(arm); });
+        const pl = new THREE.PointLight(ECOLS[ci], 1, 5); pl.position.y = 1; g.add(pl);
+        g.position.set(x, 0, z); g.userData = { hp: 2, spd: 0.018 + wave * 0.004, dead: false }; scene.add(g); ENEMIES.push(g);
+      }
     }
     function doWave(w) {
       const n = 4 + w * 2;
@@ -1644,10 +1855,29 @@
     }
     function collidePushE(ex, ez, er) {
       let x = ex, z = ez;
-      for (const b of bldgs) { const dx = x - b.x, dz = z - b.z, px = b.hw + er - Math.abs(dx), pz = b.hz + er - Math.abs(dz); if (px > 0 && pz > 0) { if (px < pz) x += dx > 0 ? px : -px; else z += dz > 0 ? pz : -pz; } }
-      for (const pb of placedBlocks) { const b = pb.box; const dx = x - b.x, dz = z - b.z, px = b.hw + er - Math.abs(dx), pz = b.hz + er - Math.abs(dz); if (px > 0 && pz > 0) { if (px < pz) x += dx > 0 ? px : -px; else z += dz > 0 ? pz : -pz; } }
-      for (const w of placedWalls) { if (w.tiles.every(t => !t)) continue; const b = wallToCollisionBox(w); const dx = x - b.x, dz = z - b.z, px = b.hw + er - Math.abs(dx), pz = b.hz + er - Math.abs(dz); if (px > 0 && pz > 0) { if (px < pz) x += dx > 0 ? px : -px; else z += dz > 0 ? pz : -pz; } }
-      return { x: Math.max(-WALL + er, Math.min(WALL - er, x)), z: Math.max(-WALL + er, Math.min(WALL - er, z)) };
+      for (const b of bldgs) {
+        const dx = x - b.x, dz = z - b.z, px = b.hw + er - Math.abs(dx), pz = b.hz + er - Math.abs(dz);
+        if (px > 0 && pz > 0) { if (px < pz) x += dx > 0 ? px : -px; else z += dz > 0 ? pz : -pz; }
+      }
+      for (const pb of placedBlocks) {
+        const b = pb.box;
+        const dx = x - b.x, dz = z - b.z, px = b.hw + er - Math.abs(dx), pz = b.hz + er - Math.abs(dz);
+        if (px > 0 && pz > 0) { if (px < pz) x += dx > 0 ? px : -px; else z += dz > 0 ? pz : -pz; }
+      }
+      // Walls — enemies must collide with ALL placed walls including Z-walls
+      for (const w of placedWalls) {
+        if (!w.tiles || w.tiles.every(t => !t)) continue;
+        const b = wallToCollisionBox(w);
+        // Check enemy Y range overlaps wall Y range
+        const enemyMinY = 0, enemyMaxY = 2.0;
+        if (enemyMinY > b.maxY || enemyMaxY < b.minY) continue;
+        const dx = x - b.x, dz = z - b.z, px = b.hw + er - Math.abs(dx), pz = b.hz + er - Math.abs(dz);
+        if (px > 0 && pz > 0) { if (px < pz) x += dx > 0 ? px : -px; else z += dz > 0 ? pz : -pz; }
+      }
+      return {
+        x: Math.max(-WALL + er, Math.min(WALL - er, x)),
+        z: Math.max(-WALL + er, Math.min(WALL - er, z))
+      };
     }
 
     // ── FIRE ──────────────────────────────────────────────────
@@ -1655,18 +1885,19 @@
       if (pEN <= 0) { showNtf('⚡ NO ENERGY — RECHARGE!', '#f80'); return; }
       const dir = new THREE.Vector3(); camera.getWorldDirection(dir);
       const b = new THREE.Mesh(new THREE.SphereGeometry(.07, 4, 4), new THREE.MeshBasicMaterial({ color: 0x00ffcc }));
-      b.position.copy(camera.position).addScaledVector(dir, .9); b.userData = { dir: dir.clone(), life: 70 }; scene.add(b); BULLETS.push(b);
+      b.position.copy(camera.position).addScaledVector(dir, .9); b.userData = { dir: dir.clone(), life: 70 };
+      scene.add(b); BULLETS.push(b);
       const mf = new THREE.PointLight(0x00ffcc, 4, 5); mf.position.copy(b.position); scene.add(mf); setTimeout(() => scene.remove(mf), 55);
       pEN = Math.max(0, pEN - 2); updateUI(); playSfxShoot(); handSwing = 6;
       if (isMultiplayer && socket) socket.emit('player_shoot', { position: { x: b.position.x, y: b.position.y, z: b.position.z }, direction: { x: dir.x, y: dir.y, z: dir.z } });
     }
 
-    // ── HAND & GHOST ──────────────────────────────────────────
     function animHand(dt) {
       if (!handGroup) return;
       const t = Date.now() / 500, moving = keys['w'] || keys['s'] || keys['a'] || keys['d'];
       handGroup.rotation.z = moving ? Math.sin(t) * .018 : 0; handGroup.position.y = moving ? -Math.abs(Math.sin(t)) * .008 : 0;
-      if (handSwing > 0) { handGroup.rotation.x = Math.sin(handSwing * .5) * -.15; handSwing -= dt * 2; if (handSwing < 0) handSwing = 0; } else handGroup.rotation.x = 0;
+      if (handSwing > 0) { handGroup.rotation.x = Math.sin(handSwing * .5) * -.15; handSwing -= dt * 2; if (handSwing < 0) handSwing = 0; }
+      else handGroup.rotation.x = 0;
     }
     function updateGhost() {
       if (tool !== 2) { ghostMesh.visible = ghostWire.visible = false; document.getElementById('ghostlbl').classList.remove('show'); return; }
@@ -1676,7 +1907,6 @@
       else ghostMesh.visible = ghostWire.visible = false;
     }
 
-    // ── UI ────────────────────────────────────────────────────
     function updateUI() {
       document.getElementById('hpfill').style.width = Math.max(0, pHP) + '%'; document.getElementById('enfill').style.width = Math.max(0, pEN) + '%';
       document.getElementById('hpval').textContent = Math.round(Math.max(0, pHP)); document.getElementById('enval').textContent = Math.round(Math.max(0, pEN)) + '%';
@@ -1687,14 +1917,11 @@
     function flashHit() { const h = document.getElementById('hitfl'), v = document.getElementById('vig'); h.style.opacity = 1; v.style.opacity = 1; playSfxHit(); setTimeout(() => { h.style.opacity = 0; v.style.opacity = 0; }, 120); }
     function flashKill() { const k = document.getElementById('kilfl'); k.style.opacity = 1; setTimeout(() => k.style.opacity = 0, 180); }
     const kfE = [];
-    function addKillFeed(msg) {
-      const kf = document.getElementById('killfeed'), el = document.createElement('div'); el.className = 'kf-entry'; el.textContent = msg; kf.appendChild(el); kfE.push(el);
-      if (kfE.length > 5) { const old = kfE.shift(); kf.removeChild(old); }
-      setTimeout(() => { el.style.opacity = 0; setTimeout(() => { if (el.parentNode) kf.removeChild(el); const i = kfE.indexOf(el); if (i >= 0) kfE.splice(i, 1); }, 400); }, 3500);
-    }
+    function addKillFeed(msg) { const kf = document.getElementById('killfeed'), el = document.createElement('div'); el.className = 'kf-entry'; el.textContent = msg; kf.appendChild(el); kfE.push(el); if (kfE.length > 5) { const old = kfE.shift(); kf.removeChild(old); } setTimeout(() => { el.style.opacity = 0; setTimeout(() => { if (el.parentNode) kf.removeChild(el); const i = kfE.indexOf(el); if (i >= 0) kfE.splice(i, 1); }, 400); }, 3500); }
+
     function setTool(t) {
-      if (editWallIdx >= 0) exitEditMode(false); // exit edit if switching tool
-      tool = t;
+      if (!gameRunning) return;
+      if (editWallIdx >= 0) exitEditMode(false); tool = t;
       document.getElementById('ws1').classList.toggle('sel', t === 1);
       document.getElementById('ws2').classList.toggle('sel', t === 2);
       document.getElementById('ws3').classList.toggle('sel', t === 3);
@@ -1702,9 +1929,10 @@
       document.getElementById('xhdot').style.display = t === 1 ? 'block' : 'none';
       if (gunMesh) gunMesh.visible = t === 1;
       if (blockHandMesh) blockHandMesh.visible = t === 2;
-      if (t !== 2) { ghostMesh.visible = ghostWire.visible = false; document.getElementById('ghostlbl').classList.remove('show'); }
-      if (t !== 3) { removeWallGhost(); }
+      if (ghostMesh && t !== 2) { ghostMesh.visible = ghostWire.visible = false; document.getElementById('ghostlbl').classList.remove('show'); }
+      if (t !== 3) removeWallGhost();
     }
+
     function doGameOver(isMP = false, iWon = false, winnerName = '', loserName = '', forfeit = false) {
       isDead = true; gameRunning = false; if (document.pointerLockElement) document.exitPointerLock();
       const go = document.getElementById('gover'); go.classList.add('on');
@@ -1725,6 +1953,7 @@
       if (!quizActive && !isDead) tick(dt);
       renderer.render(scene, camera); drawMinimap(); requestAnimationFrame(loop);
     }
+
     function tick(dt) {
       if (document.pointerLockElement === gc) {
         yaw -= mdx * .0016; pitch -= mdy * .0016; pitch = Math.max(-1.1, Math.min(1.1, pitch)); mdx = 0; mdy = 0;
@@ -1736,6 +1965,7 @@
       np.y = 1.7; collidePush(np); camera.position.copy(np);
       if (shooting && sCD <= 0 && tool === 1) { fireBullet(); sCD = 9; } sCD -= dt;
       if (isMultiplayer && socket) { netUpdateTimer += dt; if (netUpdateTimer >= 3) { netUpdateTimer = 0; socket.emit('player_update', { position: { x: camera.position.x, y: camera.position.y, z: camera.position.z }, rotation: { yaw, pitch } }); } }
+
       // My bullets
       for (let i = BULLETS.length - 1; i >= 0; i--) {
         const b = BULLETS[i]; b.position.addScaledVector(b.userData.dir, .85 * dt); b.userData.life -= dt;
@@ -1749,419 +1979,119 @@
             for (let j = ENEMIES.length - 1; j >= 0; j--) {
               const e = ENEMIES[j]; if (e.userData.dead) continue;
               const ep = e.position.clone(); ep.y = b.position.y;
-              if (b.position.distanceTo(ep) < .9) { e.userData.hp--; if (e.userData.hp <= 0) { e.userData.dead = true; scene.remove(e); ENEMIES.splice(j, 1); kills++; score += 100 * wave; flashKill(); playSfxKill(); document.getElementById('klnum').textContent = kills; document.getElementById('scnum').textContent = score; addKillFeed('💀 ZOMBIE ELIMINATED +' + 100 * wave); } rm = true; break; }
+              if (b.position.distanceTo(ep) < .9) {
+                e.userData.hp--;
+                if (e.userData.hp <= 0) {
+                  e.userData.dead = true; e.userData.deathTimer = 2.5;
+                  if (e.userData.ctrl) { e.userData.ctrl.die(); } else { scene.remove(e); ENEMIES.splice(j, 1); }
+                  kills++; score += 100 * wave; flashKill(); playSfxKill();
+                  document.getElementById('klnum').textContent = kills; document.getElementById('scnum').textContent = score;
+                  addKillFeed('💀 ZOMBIE ELIMINATED +' + 100 * wave);
+                }
+                rm = true; break;
+              }
             }
           }
         }
         if (rm) { scene.remove(b); BULLETS.splice(i, 1); }
       }
+
       // Opponent bullets
       for (let i = opponentBullets.length - 1; i >= 0; i--) { const b = opponentBullets[i]; b.position.addScaledVector(b.userData.dir, .85 * dt); b.userData.life -= dt; if (b.userData.life <= 0) { scene.remove(b); opponentBullets.splice(i, 1); } }
+
       // AI enemies
       if (!isMultiplayer) {
-        const t = Date.now();
+        const deltaSec = zombieClock.getDelta();
+        zombieMixers.forEach(m => m.update(deltaSec));
         for (let i = ENEMIES.length - 1; i >= 0; i--) {
-          const e = ENEMIES[i]; if (e.userData.dead) continue;
+          const e = ENEMIES[i]; const ctrl = e.userData.ctrl;
+          if (e.userData.dead) {
+            if (e.userData.deathTimer > 0) {
+              e.userData.deathTimer -= deltaSec;
+              if (e.userData.deathTimer <= 0) { scene.remove(e); if (ctrl) { const mi = zombieMixers.indexOf(ctrl.mixer); if (mi >= 0) zombieMixers.splice(mi, 1); } ENEMIES.splice(i, 1); }
+            }
+            continue;
+          }
           const dx = camera.position.x - e.position.x, dz = camera.position.z - e.position.z, dist = Math.sqrt(dx * dx + dz * dz);
-          if (dist > .01) { e.position.x += dx / dist * e.userData.spd * dt; e.position.z += dz / dist * e.userData.spd * dt; const nr = collidePushE(e.position.x, e.position.z, .45); e.position.x = nr.x; e.position.z = nr.z; }
-          e.lookAt(camera.position.x, e.position.y, camera.position.z); e.position.y = Math.sin(t / 280 + i) * .04;
-          if (dist < 1.4) { pHP -= .07 * dt; updateUI(); flashHit(); if (pHP <= 0) { doGameOver(); return; } }
+          if (dist < 1.4) {
+            if (ctrl && e.userData.state !== ZS.ATTACK) { e.userData.state = ZS.ATTACK; ctrl.play(zombieAnimClips.bite ? 'bite' : 'attack'); }
+            pHP -= 0.07 * dt; updateUI(); flashHit(); if (pHP <= 0) { doGameOver(); return; }
+          } else {
+            const moveAnim = ctrl ? ctrl.chosenMove : 'walk';
+            if (ctrl && e.userData.state !== moveAnim) { e.userData.state = moveAnim; ctrl.play(moveAnim); }
+            if (dist > 0.01) { e.position.x += dx / dist * e.userData.spd * dt; e.position.z += dz / dist * e.userData.spd * dt; }
+          }
+          const nr = collidePushE(e.position.x, e.position.z, .45); e.position.x = nr.x; e.position.z = nr.z;
+          if (dist > 0.1) e.lookAt(camera.position.x, e.position.y, camera.position.z);
         }
-        if (ENEMIES.length === 0) { wave++; doWave(wave); }
+        if (ENEMIES.filter(e => !e.userData.dead).length === 0 && ENEMIES.length === 0) { wave++; doWave(wave); }
       }
+
       // Stations
       const t = Date.now(); nearSt = false; nearStObj = null;
-      for (const s of STATIONS) { const d = Math.hypot(camera.position.x - s.position.x, camera.position.z - s.position.z); s.userData.pl.intensity = 1.5 + Math.sin(t / 380) * .5; s.rotation.y += .012 * dt; if (d < 4) { nearSt = true; nearStObj = s; } }
+      for (const s of STATIONS) {
+        const d = Math.hypot(camera.position.x - s.position.x, camera.position.z - s.position.z);
+        s.userData.pl.intensity = 1.5 + Math.sin(t / 380) * .5; s.rotation.y += .012 * dt;
+        if (d < 4) { nearSt = true; nearStObj = s; }
+      }
       if (nearStObj) { nearStObj.userData.pl.intensity = 3 + Math.sin(t / 180) * .8; nearStObj.rotation.y += .03 * dt; if (pEN < 100) { pEN = Math.min(100, pEN + .03 * dt); updateUI(); } }
       document.getElementById('ipr').style.opacity = nearSt ? 1 : 0;
       animHand(dt); updateGhost(); updateWallGhost();
     }
 
-
     // ══════════════════════════════════════════
-    //  FORTNITE-STYLE WALL BUILDING SYSTEM
+    //  WALL BUILDING SYSTEM
     // ══════════════════════════════════════════
-
-    const WGRID = 4;
-    const WALL_W = WGRID;
-    const WALL_H = 3.2;
-    const WALL_T = 0.22;
-
-    // placedWalls[]: { group, tiles[9 bool], cx,cy,cz, axis:'x'|'z' }
-    const placedWalls = [];
-    let wallGhostGroup = null;
-
-    // Edit state
-    let editWallIdx = -1;
-    let editTiles = null;   // working copy of tiles during edit
-    let editDirty = false;
-    let editDragMode = null;   // true=painting solid, false=painting cut
-    let editTileMeshes = [];   // THREE.Mesh[] overlaid on the wall face
-
-    // Turbo-place
+    const WGRID = 4, WALL_W = 4, WALL_H = 3.2, WALL_T = 0.22;
+    const placedWalls = []; let wallGhostGroup = null;
+    let editWallIdx = -1, editTiles = null, editDirty = false, editDragMode = null, editTileMeshes = [];
     let wallHoldInterval = null;
 
-    // ── SNAP ──────────────────────────────────
-    function getWallSnap() {
-      if (!camera) return null;
-      const rd = new THREE.Vector3(); camera.getWorldDirection(rd);
-      const reach = 5.5;
-      const ax = camera.position.x + rd.x * reach;
-      const az = camera.position.z + rd.z * reach;
-      const axis = Math.abs(rd.x) > Math.abs(rd.z) ? 'z' : 'x';
-      const cx = Math.round(ax / WGRID) * WGRID;
-      const cz = Math.round(az / WGRID) * WGRID;
-      return { cx, cy: WALL_H / 2, cz, axis };
-    }
-
-    function wallOccupied(cx, cz, axis) {
-      return placedWalls.some(w =>
-        Math.abs(w.cx - cx) < 0.1 && Math.abs(w.cz - cz) < 0.1 && w.axis === axis);
-    }
-
-    // ── PLAIN SLAB (freshly placed, no edit yet) ──
-    function buildWallSlab(cx, cy, cz, axis) {
-      const g = new THREE.Group();
-      const geo = axis === 'z'
-        ? new THREE.BoxGeometry(WALL_T, WALL_H, WALL_W)
-        : new THREE.BoxGeometry(WALL_W, WALL_H, WALL_T);
-      g.add(new THREE.Mesh(geo, new THREE.MeshLambertMaterial({ color: 0x3a7ad4 })));
-      g.add(new THREE.Mesh(geo.clone(),
-        new THREE.MeshBasicMaterial({
-          color: 0x66ccff, wireframe: true,
-          transparent: true, opacity: 0.3
-        })));
-      g.position.set(cx, cy, cz);
-      return g;
-    }
-
-    // ── SEGMENTED mesh (after edit — only solid tiles rendered) ──
-    // World index layout: row 0=bottom … row 2=top, col 0=world-min … col 2=world-max
-    function buildWallSegmented(cx, cy, cz, axis, tiles) {
-      const g = new THREE.Group();
-      const tW = WALL_W / 3, tH = WALL_H / 3;
-      const mat = new THREE.MeshLambertMaterial({ color: 0x3a7ad4 });
-      const edM = new THREE.MeshBasicMaterial({ color: 0x66ccff, wireframe: true, transparent: true, opacity: 0.3 });
-      for (let row = 0; row < 3; row++) {
-        for (let col = 0; col < 3; col++) {
-          if (!tiles[row * 3 + col]) continue;
-          const py = -WALL_H / 2 + tH / 2 + row * tH;
-          let geo, px, pz;
-          if (axis === 'z') {
-            geo = new THREE.BoxGeometry(WALL_T, tH, tW);
-            px = 0; pz = -WALL_W / 2 + tW / 2 + col * tW;
-          } else {
-            geo = new THREE.BoxGeometry(tW, tH, WALL_T);
-            px = -WALL_W / 2 + tW / 2 + col * tW; pz = 0;
-          }
-          const m = new THREE.Mesh(geo, mat); m.position.set(px, py, pz); g.add(m);
-          const e = new THREE.Mesh(geo.clone(), edM); e.position.set(px, py, pz); g.add(e);
-        }
-      }
-      g.position.set(cx, cy, cz);
-      return g;
-    }
-
-    // ── GHOST PREVIEW ─────────────────────────
-    function buildWallGhostMesh(cx, cy, cz, axis, valid) {
-      if (wallGhostGroup) { scene.remove(wallGhostGroup); wallGhostGroup = null; }
-      const col = valid ? 0x44aaff : 0xff4444;
-      const geo = axis === 'z'
-        ? new THREE.BoxGeometry(WALL_T, WALL_H, WALL_W)
-        : new THREE.BoxGeometry(WALL_W, WALL_H, WALL_T);
-      const g = new THREE.Group();
-      g.add(new THREE.Mesh(geo,
-        new THREE.MeshLambertMaterial({ color: col, transparent: true, opacity: 0.32, depthWrite: false })));
-      g.add(new THREE.Mesh(geo.clone(),
-        new THREE.MeshBasicMaterial({ color: col, wireframe: true, transparent: true, opacity: 0.65 })));
-      g.position.set(cx, cy, cz);
-      scene.add(g);
-      wallGhostGroup = g;
-    }
-    function removeWallGhost() {
-      if (wallGhostGroup) { scene.remove(wallGhostGroup); wallGhostGroup = null; }
-    }
-
-    // ── PLACE / TURBO ─────────────────────────
+    function getWallSnap() { if (!camera) return null; const rd = new THREE.Vector3(); camera.getWorldDirection(rd); const reach = 5.5, ax = camera.position.x + rd.x * reach, az = camera.position.z + rd.z * reach, axis = Math.abs(rd.x) > Math.abs(rd.z) ? 'z' : 'x', cx = Math.round(ax / WGRID) * WGRID, cz = Math.round(az / WGRID) * WGRID; return { cx, cy: WALL_H / 2, cz, axis }; }
+    function wallOccupied(cx, cz, axis) { return placedWalls.some(w => Math.abs(w.cx - cx) < 0.1 && Math.abs(w.cz - cz) < 0.1 && w.axis === axis); }
+    function buildWallSlab(cx, cy, cz, axis) { const g = new THREE.Group(), geo = axis === 'z' ? new THREE.BoxGeometry(WALL_T, WALL_H, WALL_W) : new THREE.BoxGeometry(WALL_W, WALL_H, WALL_T); g.add(new THREE.Mesh(geo, new THREE.MeshLambertMaterial({ color: 0x3a7ad4 }))); g.add(new THREE.Mesh(geo.clone(), new THREE.MeshBasicMaterial({ color: 0x66ccff, wireframe: true, transparent: true, opacity: 0.3 }))); g.position.set(cx, cy, cz); return g; }
+    function buildWallSegmented(cx, cy, cz, axis, tiles) { const g = new THREE.Group(), tW = WALL_W / 3, tH = WALL_H / 3, mat = new THREE.MeshLambertMaterial({ color: 0x3a7ad4 }), edM = new THREE.MeshBasicMaterial({ color: 0x66ccff, wireframe: true, transparent: true, opacity: 0.3 }); for (let row = 0; row < 3; row++) { for (let col = 0; col < 3; col++) { if (!tiles[row * 3 + col]) continue; const py = -WALL_H / 2 + tH / 2 + row * tH; let geo, px, pz; if (axis === 'z') { geo = new THREE.BoxGeometry(WALL_T, tH, tW); px = 0; pz = -WALL_W / 2 + tW / 2 + col * tW; } else { geo = new THREE.BoxGeometry(tW, tH, WALL_T); px = -WALL_W / 2 + tW / 2 + col * tW; pz = 0; } const m = new THREE.Mesh(geo, mat); m.position.set(px, py, pz); g.add(m); const e = new THREE.Mesh(geo.clone(), edM); e.position.set(px, py, pz); g.add(e); } } g.position.set(cx, cy, cz); return g; }
+    function buildWallGhostMesh(cx, cy, cz, axis, valid) { if (wallGhostGroup) { scene.remove(wallGhostGroup); wallGhostGroup = null; } const col = valid ? 0x44aaff : 0xff4444, geo = axis === 'z' ? new THREE.BoxGeometry(WALL_T, WALL_H, WALL_W) : new THREE.BoxGeometry(WALL_W, WALL_H, WALL_T), g = new THREE.Group(); g.add(new THREE.Mesh(geo, new THREE.MeshLambertMaterial({ color: col, transparent: true, opacity: 0.32, depthWrite: false }))); g.add(new THREE.Mesh(geo.clone(), new THREE.MeshBasicMaterial({ color: col, wireframe: true, transparent: true, opacity: 0.65 }))); g.position.set(cx, cy, cz); scene.add(g); wallGhostGroup = g; }
+    function removeWallGhost() { if (wallGhostGroup) { scene.remove(wallGhostGroup); wallGhostGroup = null; } }
     function placeWall() {
-      const snap = getWallSnap();
-      if (!snap) return;
+      const snap = getWallSnap(); if (!snap) return;
       if (wallOccupied(snap.cx, snap.cz, snap.axis)) return;
       const tiles = new Array(9).fill(true);
       const grp = buildWallSlab(snap.cx, snap.cy, snap.cz, snap.axis);
       scene.add(grp);
       placedWalls.push({ group: grp, tiles, cx: snap.cx, cy: snap.cy, cz: snap.cz, axis: snap.axis });
-      playSfxPlace();
-      handSwing = 5;
+      playSfxPlace(); handSwing = 5;
+      if (isMultiplayer && socket) socket.emit('player_wall_placed', { cx: snap.cx, cy: snap.cy, cz: snap.cz, axis: snap.axis });
     }
     function startTurboWall() { placeWall(); wallHoldInterval = setInterval(placeWall, 90); }
     function stopTurboWall() { if (wallHoldInterval) { clearInterval(wallHoldInterval); wallHoldInterval = null; } }
-
-    // ── COLLISION BOX ─────────────────────────
-    function wallToCollisionBox(w) {
-      return {
-        x: w.cx, z: w.cz,
-        hw: w.axis === 'z' ? WALL_T / 2 : WALL_W / 2,
-        hz: w.axis === 'z' ? WALL_W / 2 : WALL_T / 2,
-        minY: 0, maxY: WALL_H
-      };
-    }
-
-    // Per-tile walkthrough: returns true if player body can pass through this wall
-    // The player body is ~0.8 wide. A tile is WALL_W/3 ≈ 1.33 wide.
-    // We need at least 2 adjacent cut tiles in the same row at head height.
-    function playerCanPassWall(w, pos) {
-      // Which column(s) does the player overlap?
-      const tW = WALL_W / 3;
-      const wallMinAlong = (w.axis === 'z' ? w.cz : w.cx) - WALL_W / 2;
-      const playerAlong = w.axis === 'z' ? pos.z : pos.x;
-      // Player half-width in the along direction
-      const pHalf = 0.42;
-      const pMin = playerAlong - pHalf;
-      const pMax = playerAlong + pHalf;
-
-      // Which rows does the player's mid-body span? (camera.y=1.7, legs from 0 to 1.7)
-      // We check the two body rows: row 0 (0–tH) and row 1 (tH–2tH)
-      const tH = WALL_H / 3;
-      const bodyRows = [0, 1]; // bottom two rows = player body + head fits through bottom 2 rows
-
-      for (const row of bodyRows) {
-        // Find all cols the player overlaps
-        let allCut = true;
-        let anyOverlap = false;
-        for (let col = 0; col < 3; col++) {
-          const cMin = wallMinAlong + col * tW;
-          const cMax = cMin + tW;
-          if (pMax > cMin && pMin < cMax) {
-            anyOverlap = true;
-            if (w.tiles[row * 3 + col]) { allCut = false; break; } // solid tile in player path
-          }
-        }
-        if (anyOverlap && !allCut) return false; // blocked by at least one solid tile in this row
-      }
-      return true; // all overlapping tiles in both body rows are cut
-    }
-
-    function collidePushWalls(pos) {
-      for (const w of placedWalls) {
-        if (w.tiles.every(t => !t)) continue;
-        if (playerCanPassWall(w, pos)) continue; // gap is big enough
-        const box = wallToCollisionBox(w);
-        if (camera.position.y - 1.7 > box.maxY) continue;
-        const dx = pos.x - box.x, dz = pos.z - box.z;
-        const px = box.hw + 0.6 - Math.abs(dx), pz = box.hz + 0.6 - Math.abs(dz);
-        if (px > 0 && pz > 0) { if (px < pz) pos.x += dx > 0 ? px : -px; else pos.z += dz > 0 ? pz : -pz; }
-      }
-    }
-
-    // ── BULLET vs WALL ────────────────────────
-    function bulletHitsWall(bpos) {
-      for (const w of placedWalls) {
-        const box = wallToCollisionBox(w);
-        if (bpos.x > box.x - box.hw && bpos.x < box.x + box.hw &&
-          bpos.y > box.minY && bpos.y < box.maxY &&
-          bpos.z > box.z - box.hz && bpos.z < box.z + box.hz) {
-          const tW = WALL_W / 3, tH = WALL_H / 3;
-          const uRaw = w.axis === 'z'
-            ? (bpos.z - (w.cz - WALL_W / 2)) / tW
-            : (bpos.x - (w.cx - WALL_W / 2)) / tW;
-          const col = Math.floor(Math.max(0, Math.min(2.99, uRaw)));
-          const row = Math.floor(Math.max(0, Math.min(2.99, bpos.y / tH)));
-          if (w.tiles[row * 3 + col]) return true;
-        }
-      }
-      return false;
-    }
-
-    // ── RAYCAST to aimed wall ─────────────────
-    function getAimedWallIdx() {
-      const ro = camera.position.clone();
-      const rd = new THREE.Vector3(); camera.getWorldDirection(rd);
-      let best = Infinity, bestIdx = -1;
-      placedWalls.forEach((w, i) => {
-        const r = rayAABB(ro, rd, wallToCollisionBox(w));
-        if (r && r.t < best && r.t < 7) { best = r.t; bestIdx = i; }
-      });
-      return bestIdx;
-    }
-
-    // ── IN-WORLD EDIT MODE ────────────────────
-    // Instead of a 2D overlay, we spawn 9 flat planes directly on the wall face.
-    // Mouse controls are re-mapped: mousemove raycasts against these planes.
+    function wallToCollisionBox(w) { return { x: w.cx, z: w.cz, hw: w.axis === 'z' ? WALL_T / 2 : WALL_W / 2, hz: w.axis === 'z' ? WALL_W / 2 : WALL_T / 2, minY: 0, maxY: WALL_H }; }
+    function playerCanPassWall(w, pos) { const tW = WALL_W / 3, wallMinAlong = (w.axis === 'z' ? w.cz : w.cx) - WALL_W / 2, playerAlong = w.axis === 'z' ? pos.z : pos.x, pHalf = 0.42, pMin = playerAlong - pHalf, pMax = playerAlong + pHalf; for (const row of [0, 1]) { let allCut = true, anyOverlap = false; for (let col = 0; col < 3; col++) { const cMin = wallMinAlong + col * tW, cMax = cMin + tW; if (pMax > cMin && pMin < cMax) { anyOverlap = true; if (w.tiles[row * 3 + col]) { allCut = false; break; } } } if (anyOverlap && !allCut) return false; } return true; }
+    function collidePushWalls(pos) { for (const w of placedWalls) { if (w.tiles.every(t => !t)) continue; if (playerCanPassWall(w, pos)) continue; const box = wallToCollisionBox(w); if (camera.position.y - 1.7 > box.maxY) continue; const dx = pos.x - box.x, dz = pos.z - box.z, px = box.hw + 0.6 - Math.abs(dx), pz = box.hz + 0.6 - Math.abs(dz); if (px > 0 && pz > 0) { if (px < pz) pos.x += dx > 0 ? px : -px; else pos.z += dz > 0 ? pz : -pz; } } }
+    function bulletHitsWall(bpos) { for (const w of placedWalls) { const box = wallToCollisionBox(w); if (bpos.x > box.x - box.hw && bpos.x < box.x + box.hw && bpos.y > box.minY && bpos.y < box.maxY && bpos.z > box.z - box.hz && bpos.z < box.z + box.hz) { const tW = WALL_W / 3, tH = WALL_H / 3, uRaw = w.axis === 'z' ? (bpos.z - (w.cz - WALL_W / 2)) / tW : (bpos.x - (w.cx - WALL_W / 2)) / tW, col = Math.floor(Math.max(0, Math.min(2.99, uRaw))), row = Math.floor(Math.max(0, Math.min(2.99, bpos.y / tH))); if (w.tiles[row * 3 + col]) return true; } } return false; }
+    function getAimedWallIdx() { const ro = camera.position.clone(), rd = new THREE.Vector3(); camera.getWorldDirection(rd); let best = Infinity, bestIdx = -1; placedWalls.forEach((w, i) => { const r = rayAABB(ro, rd, wallToCollisionBox(w)); if (r && r.t < best && r.t < 7) { best = r.t; bestIdx = i; } }); return bestIdx; }
 
     const editRaycaster = new THREE.Raycaster();
-    let editMouseNDC = new THREE.Vector2(0, 0); // updated on mousemove
-
     function enterEditMode(wallIdx) {
-      if (editWallIdx >= 0) exitEditMode(false);
-      editWallIdx = wallIdx;
-      editTiles = [...placedWalls[wallIdx].tiles];
-      editDirty = false;
-      editDragMode = null;
-      editTileMeshes = [];
-
-      const w = placedWalls[wallIdx];
-
-      // Build 9 interactive tile planes ON the wall face
-      const tW = WALL_W / 3, tH = WALL_H / 3;
-      const TILE_DEPTH = 0.05;
-      const faceOffset = WALL_T / 2 + TILE_DEPTH / 2 + 0.01; // slightly in front of wall face
-
-      for (let row = 0; row < 3; row++) {
-        for (let col = 0; col < 3; col++) {
-          const worldIdx = row * 3 + col;
-          const isSolid = editTiles[worldIdx];
-          const py = -WALL_H / 2 + tH / 2 + row * tH;
-
-          let geo, px, pz;
-          if (w.axis === 'z') {
-            geo = new THREE.BoxGeometry(TILE_DEPTH, tH - 0.04, tW - 0.04);
-            px = faceOffset; // face +X side
-            pz = -WALL_W / 2 + tW / 2 + col * tW;
-          } else {
-            geo = new THREE.BoxGeometry(tW - 0.04, tH - 0.04, TILE_DEPTH);
-            px = -WALL_W / 2 + tW / 2 + col * tW;
-            pz = faceOffset; // face +Z side
-          }
-
-          const color = isSolid ? 0x2266ee : 0x333344;
-          const mat = new THREE.MeshBasicMaterial({
-            color, transparent: true, opacity: isSolid ? 0.72 : 0.38,
-            depthWrite: false, side: THREE.DoubleSide
-          });
-          const mesh = new THREE.Mesh(geo, mat);
-          mesh.position.set(px, py, pz);
-          mesh.userData = { worldIdx, row, col };
-
-          w.group.add(mesh);
-          editTileMeshes.push(mesh);
-        }
-      }
-
-      // Also add tiles on the BACK face so edit is visible from both sides
-      for (let row = 0; row < 3; row++) {
-        for (let col = 0; col < 3; col++) {
-          const worldIdx = row * 3 + col;
-          const isSolid = editTiles[worldIdx];
-          const py = -WALL_H / 2 + tH / 2 + row * tH;
-          let geo, px, pz;
-          if (w.axis === 'z') {
-            geo = new THREE.BoxGeometry(TILE_DEPTH, tH - 0.04, tW - 0.04);
-            px = -faceOffset; pz = -WALL_W / 2 + tW / 2 + col * tW;
-          } else {
-            geo = new THREE.BoxGeometry(tW - 0.04, tH - 0.04, TILE_DEPTH);
-            px = -WALL_W / 2 + tW / 2 + col * tW; pz = -faceOffset;
-          }
-          const mat = new THREE.MeshBasicMaterial({
-            color: isSolid ? 0x2266ee : 0x333344,
-            transparent: true, opacity: isSolid ? 0.55 : 0.25,
-            depthWrite: false, side: THREE.DoubleSide
-          });
-          const mesh = new THREE.Mesh(geo, mat);
-          mesh.position.set(px, py, pz);
-          mesh.userData = { worldIdx, row, col, back: true };
-          w.group.add(mesh);
-          editTileMeshes.push(mesh);
-        }
-      }
-
-      document.getElementById('edit-hint').classList.add('on');
-      showNtf('EDIT MODE — CLICK TILES · RELEASE TO CONFIRM', '#4af');
+      if (editWallIdx >= 0) exitEditMode(false); editWallIdx = wallIdx; editTiles = [...placedWalls[wallIdx].tiles]; editDirty = false; editDragMode = null; editTileMeshes = [];
+      const w = placedWalls[wallIdx], tW = WALL_W / 3, tH = WALL_H / 3, TILE_DEPTH = 0.05, faceOffset = WALL_T / 2 + TILE_DEPTH / 2 + 0.01;
+      for (let face = 0; face < 2; face++) { const isBack = face === 1; for (let row = 0; row < 3; row++) { for (let col = 0; col < 3; col++) { const worldIdx = row * 3 + col, isSolid = editTiles[worldIdx], py = -WALL_H / 2 + tH / 2 + row * tH; let geo, px, pz; const fo = isBack ? -faceOffset : faceOffset; if (w.axis === 'z') { geo = new THREE.BoxGeometry(TILE_DEPTH, tH - 0.04, tW - 0.04); px = fo; pz = -WALL_W / 2 + tW / 2 + col * tW; } else { geo = new THREE.BoxGeometry(tW - 0.04, tH - 0.04, TILE_DEPTH); px = -WALL_W / 2 + tW / 2 + col * tW; pz = fo; } const mat = new THREE.MeshBasicMaterial({ color: isSolid ? 0x2266ee : 0x333344, transparent: true, opacity: isSolid ? (isBack ? 0.55 : 0.72) : (isBack ? 0.25 : 0.38), depthWrite: false, side: THREE.DoubleSide }); const mesh = new THREE.Mesh(geo, mat); mesh.position.set(px, py, pz); mesh.userData = { worldIdx, row, col, back: isBack }; w.group.add(mesh); editTileMeshes.push(mesh); } } }
+      document.getElementById('edit-hint').classList.add('on'); showNtf('EDIT MODE — CLICK TILES · RELEASE TO CONFIRM', '#4af');
     }
-
-    function refreshEditTileColors() {
-      editTileMeshes.forEach(mesh => {
-        const { worldIdx, back } = mesh.userData;
-        const solid = editTiles[worldIdx];
-        mesh.material.color.setHex(solid ? 0x2266ee : 0x333344);
-        mesh.material.opacity = solid ? (back ? 0.55 : 0.72) : (back ? 0.25 : 0.38);
-      });
-    }
-
-    function exitEditMode(confirm) {
-      if (editWallIdx < 0) return;
-      document.getElementById('edit-hint').classList.remove('on');
-      editDragMode = null;
-
-      // Remove tile meshes from wall group
-      editTileMeshes.forEach(m => placedWalls[editWallIdx].group.remove(m));
-      editTileMeshes = [];
-
-      if (confirm && editDirty) applyWallEdit(editWallIdx, editTiles);
-
-      editWallIdx = -1;
-      editTiles = null;
-      editDirty = false;
-    }
-
+    function refreshEditTileColors() { editTileMeshes.forEach(mesh => { const { worldIdx, back } = mesh.userData, solid = editTiles[worldIdx]; mesh.material.color.setHex(solid ? 0x2266ee : 0x333344); mesh.material.opacity = solid ? (back ? 0.55 : 0.72) : (back ? 0.25 : 0.38); }); }
+    function exitEditMode(confirm) { if (editWallIdx < 0) return; document.getElementById('edit-hint').classList.remove('on'); editDragMode = null; editTileMeshes.forEach(m => placedWalls[editWallIdx].group.remove(m)); editTileMeshes = []; if (confirm && editDirty) applyWallEdit(editWallIdx, editTiles); editWallIdx = -1; editTiles = null; editDirty = false; }
     function applyWallEdit(wallIdx, tiles) {
-      const w = placedWalls[wallIdx];
-      w.tiles = [...tiles];
+      const w = placedWalls[wallIdx]; w.tiles = [...tiles];
       scene.remove(w.group);
-      w.group = tiles.every(t => t)
-        ? buildWallSlab(w.cx, w.cy, w.cz, w.axis)
-        : buildWallSegmented(w.cx, w.cy, w.cz, w.axis, tiles);
-      scene.add(w.group);
-      playSfxPlace();
+      w.group = tiles.every(t => t) ? buildWallSlab(w.cx, w.cy, w.cz, w.axis) : buildWallSegmented(w.cx, w.cy, w.cz, w.axis, tiles);
+      scene.add(w.group); playSfxPlace();
+      if (isMultiplayer && socket) socket.emit('player_wall_edited', { index: wallIdx, tiles: [...tiles] });
     }
-
-    function resetWallEdit(wallIdx) {
-      if (wallIdx < 0 || wallIdx >= placedWalls.length) return;
-      // If currently editing this wall, refresh tiles in 3D
-      if (editWallIdx === wallIdx) {
-        editTiles = new Array(9).fill(true);
-        editDirty = true;
-        refreshEditTileColors();
-      } else {
-        applyWallEdit(wallIdx, new Array(9).fill(true));
-      }
-    }
-
-    // Raycast edit tiles using pointer-lock mouse delta accumulated into NDC
-    function raycastEditTile() {
-      if (editWallIdx < 0 || editTileMeshes.length === 0) return -1;
-      // Always cast from screen center — that's where the crosshair is
-      editRaycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
-      // Filter to front-face tiles only (not back)
-      const frontMeshes = editTileMeshes.filter(m => !m.userData.back);
-      const hits = editRaycaster.intersectObjects(frontMeshes, false);
-      if (hits.length === 0) {
-        // try back faces too
-        const allHits = editRaycaster.intersectObjects(editTileMeshes, false);
-        if (allHits.length === 0) return -1;
-        return allHits[0].object.userData.worldIdx;
-      }
-      return hits[0].object.userData.worldIdx;
-    }
-
-    function handleEditClick() {
-      const idx = raycastEditTile();
-      if (idx < 0) { exitEditMode(true); return; } // clicked outside wall = confirm
-      editDragMode = !editTiles[idx]; // flip: solid→cut mode, cut→solid mode
-      editTiles[idx] = editDragMode;
-      editDirty = true;
-      refreshEditTileColors();
-    }
-
-    function handleEditDrag() {
-      if (editDragMode === null) return;
-      const idx = raycastEditTile();
-      if (idx < 0) return;
-      if (editTiles[idx] !== editDragMode) {
-        editTiles[idx] = editDragMode;
-        editDirty = true;
-        refreshEditTileColors();
-      }
-    }
-
-    // ── GHOST UPDATE ──────────────────────────
-    function updateWallGhost() {
-      if (tool !== 3 || editWallIdx >= 0) { removeWallGhost(); return; }
-      const snap = getWallSnap();
-      if (!snap) { removeWallGhost(); return; }
-      const valid = !wallOccupied(snap.cx, snap.cz, snap.axis);
-      buildWallGhostMesh(snap.cx, snap.cy, snap.cz, snap.axis, valid);
-    }
+    function resetWallEdit(wallIdx) { if (wallIdx < 0 || wallIdx >= placedWalls.length) return; if (editWallIdx === wallIdx) { editTiles = new Array(9).fill(true); editDirty = true; refreshEditTileColors(); } else applyWallEdit(wallIdx, new Array(9).fill(true)); }
+    function raycastEditTile() { if (editWallIdx < 0 || editTileMeshes.length === 0) return -1; editRaycaster.setFromCamera(new THREE.Vector2(0, 0), camera); const frontMeshes = editTileMeshes.filter(m => !m.userData.back), hits = editRaycaster.intersectObjects(frontMeshes, false); if (hits.length === 0) { const allHits = editRaycaster.intersectObjects(editTileMeshes, false); if (allHits.length === 0) return -1; return allHits[0].object.userData.worldIdx; } return hits[0].object.userData.worldIdx; }
+    function handleEditClick() { const idx = raycastEditTile(); if (idx < 0) { exitEditMode(true); return; } editDragMode = !editTiles[idx]; editTiles[idx] = editDragMode; editDirty = true; refreshEditTileColors(); }
+    function handleEditDrag() { if (editDragMode === null) return; const idx = raycastEditTile(); if (idx < 0) return; if (editTiles[idx] !== editDragMode) { editTiles[idx] = editDragMode; editDirty = true; refreshEditTileColors(); } }
+    function updateWallGhost() { if (tool !== 3 || editWallIdx >= 0) { removeWallGhost(); return; } const snap = getWallSnap(); if (!snap) { removeWallGhost(); return; } buildWallGhostMesh(snap.cx, snap.cy, snap.cz, snap.axis, !wallOccupied(snap.cx, snap.cz, snap.axis)); }
 
     // ── MINIMAP ───────────────────────────────────────────────
     const mmCtx = document.getElementById('mmc').getContext('2d');
@@ -2177,65 +2107,34 @@
       if (!isMultiplayer) ENEMIES.forEach(e => { const [mx, mz] = mm(e.position.x, e.position.z); mmCtx.fillStyle = '#ff3322'; mmCtx.beginPath(); mmCtx.arc(mx, mz, 3, 0, Math.PI * 2); mmCtx.fill(); });
       if (isMultiplayer && opponentMesh) { const [mx, mz] = mm(opponentMesh.position.x, opponentMesh.position.z); mmCtx.fillStyle = '#ff00cc'; mmCtx.beginPath(); mmCtx.arc(mx, mz, 5, 0, Math.PI * 2); mmCtx.fill(); }
       const [px, pz] = mm(camera.position.x, camera.position.z);
-      mmCtx.fillStyle = '#fff'; mmCtx.beginPath(); mmCtx.arc(px, pz, 5, 0, Math.PI * 2); mmCtx.fill(); mmCtx.fillStyle = '#ffd700'; mmCtx.beginPath(); mmCtx.arc(px, pz, 3, 0, Math.PI * 2); mmCtx.fill();
+      mmCtx.fillStyle = '#fff'; mmCtx.beginPath(); mmCtx.arc(px, pz, 5, 0, Math.PI * 2); mmCtx.fill();
+      mmCtx.fillStyle = '#ffd700'; mmCtx.beginPath(); mmCtx.arc(px, pz, 3, 0, Math.PI * 2); mmCtx.fill();
       const fwd = new THREE.Vector3(); camera.getWorldDirection(fwd); mmCtx.strokeStyle = '#ffd700'; mmCtx.lineWidth = 2; mmCtx.beginPath(); mmCtx.moveTo(px, pz); mmCtx.lineTo(px + fwd.x * 12, pz + fwd.z * 12); mmCtx.stroke();
       mmCtx.restore(); mmCtx.strokeStyle = 'rgba(255,255,255,.25)'; mmCtx.lineWidth = 1.5; mmCtx.beginPath(); mmCtx.arc(S / 2, S / 2, S / 2 - .75, 0, Math.PI * 2); mmCtx.stroke();
     }
 
     // ── INPUT ─────────────────────────────────────────────────
-    // During edit mode the pointer stays locked.
-    // We accumulate movementX/Y to drive a virtual cursor in NDC space for raycasting.
-
-
     document.addEventListener('keydown', e => {
       const k = e.key.toLowerCase(); keys[k] = true;
-      if (k === '1') setTool(1);
-      if (k === '2') setTool(2);
+      if (k === '1') setTool(1); if (k === '2') setTool(2);
       if (k === 'z' && gameRunning && !quizActive) setTool(3);
-      if (k === 'q' && gameRunning && !quizActive) {
-        if (editWallIdx >= 0) { exitEditMode(true); }
-        else { const idx = getAimedWallIdx(); if (idx >= 0) { enterEditMode(idx); } }
-      }
+      if (k === 'q' && gameRunning && !quizActive) { if (editWallIdx >= 0) { exitEditMode(true); } else { const idx = getAimedWallIdx(); if (idx >= 0) enterEditMode(idx); } }
       if (k === 'escape' && editWallIdx >= 0) exitEditMode(false);
       if (k === 'f' && tool === 2 && gameRunning && !quizActive) removeBlock();
       if (k === 'e' && nearSt && !quizActive && gameRunning) startQuiz(() => { pEN = 100; updateUI(); showNtf('⚡ ENERGY FULLY RESTORED', '#0ff'); });
+      if (k === 'g' && gameRunning && !quizActive) {
+        window.flashlightOn = !window.flashlightOn;
+        if (window.flashlightSpot) window.flashlightSpot.intensity = window.flashlightOn ? 20 : 0;
+        if (window.flashlightFill) window.flashlightFill.intensity = window.flashlightOn ? 3 : 0;
+        if (window.flashlightLens) window.flashlightLens.material.color.setHex(window.flashlightOn ? 0xffffff : 0x334455);
+        showNtf(window.flashlightOn ? '🔦 FLASHLIGHT ON' : '🔦 FLASHLIGHT OFF', '#aaddff');
+      }
     });
     document.addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
-
-    document.addEventListener('mousemove', e => {
-      if (document.pointerLockElement !== gc) return;
-      // Camera always moves
-      mdx += e.movementX; mdy += e.movementY;
-      // Tile under crosshair = screen center, always NDC (0,0)
-      if (editWallIdx >= 0) handleEditDrag();
-    });
-
-    gc.addEventListener('mousedown', e => {
-      if (!gameRunning || quizActive) return;
-      if (document.pointerLockElement !== gc) { gc.requestPointerLock(); return; }
-      if (e.button === 0) {
-        if (editWallIdx >= 0) { handleEditClick(); }
-        else if (tool === 3) { startTurboWall(); }
-        else { shooting = true; }
-      }
-      if (e.button === 2 && tool === 2) placeBlock();
-    });
-
-    gc.addEventListener('mouseup', e => {
-      if (e.button === 0) {
-        if (editWallIdx >= 0) { editDragMode = null; exitEditMode(true); }
-        else { shooting = false; stopTurboWall(); }
-      }
-    });
-
-    gc.addEventListener('wheel', e => {
-      if (!gameRunning || quizActive) return;
-      if (e.deltaY > 0) {
-        if (editWallIdx >= 0) { resetWallEdit(editWallIdx); }
-        else { const idx = getAimedWallIdx(); if (idx >= 0) resetWallEdit(idx); }
-      }
-    }, { passive: true });
-
+    document.addEventListener('mousemove', e => { if (document.pointerLockElement !== gc) return; mdx += e.movementX; mdy += e.movementY; if (editWallIdx >= 0) handleEditDrag(); });
+    gc.addEventListener('mousedown', e => { if (!gameRunning || quizActive) return; if (document.pointerLockElement !== gc) { gc.requestPointerLock(); return; } if (e.button === 0) { if (editWallIdx >= 0) { handleEditClick(); } else if (tool === 3) { startTurboWall(); } else { shooting = true; } } if (e.button === 2 && tool === 2) placeBlock(); });
+    gc.addEventListener('mouseup', e => { if (e.button === 0) { if (editWallIdx >= 0) { editDragMode = null; exitEditMode(true); } else { shooting = false; stopTurboWall(); } } });
+    gc.addEventListener('wheel', e => { if (!gameRunning || quizActive) return; if (e.deltaY > 0) { if (editWallIdx >= 0) { resetWallEdit(editWallIdx); } else { const idx = getAimedWallIdx(); if (idx >= 0) resetWallEdit(idx); } } }, { passive: true });
     gc.addEventListener('contextmenu', e => e.preventDefault());
     gc.addEventListener('click', () => { if (gameRunning && !quizActive && document.pointerLockElement !== gc) gc.requestPointerLock(); });
     window.addEventListener('resize', () => { if (!renderer) return; renderer.setSize(innerWidth, innerHeight); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); });
@@ -2255,7 +2154,10 @@
     function initMusic() {
       if (musicStarted) return; musicStarted = true;
       Tone.Transport.bpm.value = TRACKS[currentTrack].bpm;
-      masterVol = new Tone.Volume(-8).toDestination(); reverb = new Tone.Reverb({ decay: 3.5, wet: .28 }).connect(masterVol); delay = new Tone.FeedbackDelay('8n', .22).connect(reverb); distortion = new Tone.Distortion(.12).connect(delay);
+      masterVol = new Tone.Volume(-8).toDestination();
+      reverb = new Tone.Reverb({ decay: 3.5, wet: .28 }).connect(masterVol);
+      delay = new Tone.FeedbackDelay('8n', .22).connect(reverb);
+      distortion = new Tone.Distortion(.12).connect(delay);
       bassSynth = new Tone.MonoSynth({ oscillator: { type: 'sawtooth' }, envelope: { attack: .01, decay: .3, sustain: .7, release: .3 }, filterEnvelope: { attack: .01, decay: .2, sustain: .5, release: .2, baseFrequency: 200, octaves: 2.5 }, filter: { type: 'lowpass', Q: 4 } }).connect(masterVol); bassSynth.volume.value = 2;
       leadSynth = new Tone.PolySynth(Tone.Synth, { oscillator: { type: 'square' }, envelope: { attack: .04, decay: .2, sustain: .6, release: .4 } }).connect(delay); leadSynth.volume.value = -10;
       arpSynth = new Tone.MonoSynth({ oscillator: { type: 'triangle' }, envelope: { attack: .005, decay: .12, sustain: .2, release: .1 }, filter: { type: 'bandpass', Q: 2, frequency: 1800 } }).connect(reverb); arpSynth.volume.value = -6;
@@ -2263,13 +2165,15 @@
       kickSynth = new Tone.MembraneSynth({ pitchDecay: .05, octaves: 8, envelope: { attack: .001, decay: .35, sustain: 0, release: .1 } }).connect(masterVol); kickSynth.volume.value = 2;
       snareSynth = new Tone.NoiseSynth({ noise: { type: 'white' }, envelope: { attack: .001, decay: .14, sustain: 0, release: .05 } }).connect(distortion); snareSynth.volume.value = -8;
       hihatSynth = new Tone.MetalSynth({ frequency: 400, envelope: { attack: .001, decay: .04, release: .01 }, harmonicity: 5.1, modulationIndex: 32, resonance: 4000, octaves: .5 }).connect(masterVol); hihatSynth.volume.value = -22;
-      shootSfx = new Tone.NoiseSynth({ noise: { type: 'pink' }, envelope: { attack: .001, decay: .06, sustain: 0, release: .02 } }); const sf = new Tone.Filter(800, 'highpass').connect(masterVol); shootSfx.connect(sf); shootSfx.volume.value = -18;
+      shootSfx = new Tone.NoiseSynth({ noise: { type: 'pink' }, envelope: { attack: .001, decay: .06, sustain: 0, release: .02 } });
+      const sf = new Tone.Filter(800, 'highpass').connect(masterVol); shootSfx.connect(sf); shootSfx.volume.value = -18;
       hitSfx = new Tone.Synth({ oscillator: { type: 'sawtooth' }, envelope: { attack: .001, decay: .08, sustain: 0, release: .04 } }).connect(masterVol); hitSfx.volume.value = -16;
       killSfx = new Tone.PolySynth(Tone.Synth, { oscillator: { type: 'triangle' }, envelope: { attack: .01, decay: .25, sustain: 0, release: .1 } }).connect(reverb); killSfx.volume.value = -10;
       placeSfx = new Tone.Synth({ oscillator: { type: 'sine' }, envelope: { attack: .005, decay: .1, sustain: 0, release: .05 } }).connect(masterVol); placeSfx.volume.value = -14;
       quizOkSfx = new Tone.PolySynth(Tone.Synth, { oscillator: { type: 'sine' }, envelope: { attack: .01, decay: .3, sustain: 0, release: .15 } }).connect(reverb); quizOkSfx.volume.value = -8;
       quizNoSfx = new Tone.Synth({ oscillator: { type: 'sawtooth' }, envelope: { attack: .01, decay: .35, sustain: 0, release: .1 } }).connect(distortion); quizNoSfx.volume.value = -12;
-      buildSeqs(currentTrack); Tone.Transport.start(); document.getElementById('musicbar').style.display = 'flex';
+      buildSeqs(currentTrack); Tone.Transport.start();
+      document.getElementById('musicbar').style.display = 'flex';
     }
     function buildSeqs(ti) {
       const t = TRACKS[ti]; Tone.Transport.bpm.value = t.bpm;

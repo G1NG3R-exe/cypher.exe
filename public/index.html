@@ -1653,6 +1653,28 @@
       document.getElementById('roombadge').style.display = 'block';
       gameRunning = true; gc.requestPointerLock(); requestAnimationFrame(loop);
       showNtf('MATCH START — ELIMINATE ' + (opp ? opp.username : 'OPPONENT'), '#ff00cc');
+
+      // Send all walls placed before opponent joined
+      if (socket && placedWalls.length > 0) {
+        placedWalls.forEach(w => {
+          socket.emit('player_wall_placed', { cx: w.cx, cy: w.cy, cz: w.cz, axis: w.axis });
+          // If wall was edited, also sync the tiles
+          if (!w.tiles.every(t => t)) {
+            const idx = placedWalls.indexOf(w);
+            socket.emit('player_wall_edited', { index: idx, tiles: [...w.tiles] });
+          }
+        });
+      }
+
+      // Send all blocks placed before opponent joined
+      if (socket && placedBlocks.length > 0) {
+        placedBlocks.filter(pb => !pb.isOpponent).forEach(pb => {
+          socket.emit('player_block_placed', {
+            position: { x: pb.box.x, y: (pb.box.minY + pb.box.maxY) / 2, z: pb.box.z },
+            colorHex: pb.mesh.material.color.getHex()
+          });
+        });
+      }
     }
 
     function spawnOppMesh(position, rotation) {

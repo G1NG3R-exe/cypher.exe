@@ -333,6 +333,47 @@
       opacity: .9;
     }
 
+    #xh.wall::before {
+      width: 2px;
+      height: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #4af;
+      opacity: .95;
+    }
+
+    #xh.wall::after {
+      width: 100%;
+      height: 2px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: #4af;
+      opacity: .95;
+    }
+
+    #edit-hint {
+      position: fixed;
+      bottom: 160px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      color: #4af;
+      background: rgba(0, 0, 0, .7);
+      border: 1px solid rgba(68, 170, 255, .4);
+      padding: 6px 18px;
+      border-radius: 4px;
+      pointer-events: none;
+      display: none;
+      white-space: nowrap;
+    }
+
+    #edit-hint.on {
+      display: block;
+    }
+
     #xhdot {
       position: fixed;
       top: 50%;
@@ -1119,9 +1160,13 @@
         id="enamtlbl">100%</span></div>
     <div class="ws" id="ws2"><span class="wnum">2</span><span class="wico">🧱</span><span class="wamt"
         id="bkamtlbl">50</span></div>
+    <div class="ws" id="ws3"><span class="wnum" style="color:#4af">Z</span><span class="wico"
+        style="font-size:20px;color:#4af;font-family:'Share Tech Mono',monospace;font-weight:700">▬</span><span
+        class="wamt" style="color:#4af" id="wlamtlbl">WALL</span></div>
   </div>
   <div id="xh" class="gun"></div>
   <div id="xhdot"></div>
+  <div id="edit-hint">Q=EDIT · CLICK+DRAG TILES · RELEASE TO CONFIRM · SCROLL↓ RESET</div>
   <div id="hitfl"></div>
   <div id="kilfl"></div>
   <div id="vig"></div>
@@ -1174,7 +1219,10 @@
         <div class="cr"><span>Place Block</span><span><span class="ck">Right Click</span> (build mode)</span></div>
         <div class="cr"><span>Remove Block</span><span><span class="ck">F</span> (build mode)</span></div>
         <div class="cr"><span>Switch tool</span><span><span class="ck">1</span> Blaster &nbsp;<span class="ck">2</span>
-            Build</span></div>
+            Blocks &nbsp;<span class="ck">Z</span> Wall</span></div>
+        <div class="cr"><span>Place Wall</span><span><span class="ck">Left Click</span> (wall mode)</span></div>
+        <div class="cr"><span>Edit Wall</span><span><span class="ck">Q</span> while aiming at wall</span></div>
+        <div class="cr"><span>Reset Wall</span><span><span class="ck">Scroll ↓</span> while aiming at wall</span></div>
         <div class="cr"><span>Recharge</span><span><span class="ck">E</span> near cyan terminal</span></div>
       </div>
       <div id="svoc">
@@ -1262,7 +1310,12 @@
     const SOCKET_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
       ? 'http://localhost:3000' : window.location.origin;
 
+    // Prime AudioContext on very first user gesture so it is ready by game start
+    let tonePrimed = false;
+    async function primeAudio() { if (tonePrimed) return; tonePrimed = true; try { await Tone.start(); } catch (e) { } }
+
     function selectMode(mode) {
+      primeAudio(); // inside a real click handler — satisfies browser autoplay policy
       gameMode = mode;
       document.getElementById('phase-mode').style.display = 'none';
       if (mode === 'private') { document.getElementById('phase-private').style.display = 'flex'; }
@@ -1277,7 +1330,8 @@
 
     function connectSocket() {
       if (socket && socket.connected) return;
-      socket = io(SOCKET_URL, { transports: ['websocket', 'polling'] });
+      // polling first so it works on Railway/Render, then upgrades to WS if available
+      socket = io(SOCKET_URL, { transports: ['polling', 'websocket'] });
       socket.on('connect', () => { mySocketId = socket.id; });
       socket.on('connect_error', () => showPubErr('Cannot connect to server.'));
       socket.on('room_update', ({ players, code }) => updateLobbyUI(players, code));
@@ -1394,16 +1448,18 @@
     const BLK_MATS = [new THREE.Color(0x1a6aaa), new THREE.Color(0x8a1a6a), new THREE.Color(0x1a8a3a), new THREE.Color(0xaa6a1a), new THREE.Color(0x6a1aaa)];
     let handGroup = null, gunMesh = null, blockHandMesh = null, handSwing = 0;
 
-    async function bootPrivate() {
-      await Tone.start(); initMusic();
+    function bootPrivate() {
+      primeAudio(); // also a direct click — belt-and-suspenders
+      initMusic();
       document.getElementById('start').style.display = 'none';
       isMultiplayer = false; initR(); buildWorld(); buildStations(); buildFPHand(); doWave(1);
       gameRunning = true; gc.requestPointerLock(); requestAnimationFrame(loop);
     }
     window.bootPrivate = bootPrivate;
 
-    async function startMPGame(players) {
-      await Tone.start(); initMusic();
+    function startMPGame(players) {
+      // Called from socket event (not a click), so we rely on primeAudio() having run earlier
+      initMusic();
       document.getElementById('start').style.display = 'none';
       isMultiplayer = true; initR(); buildWorld(); buildStations(); buildFPHand();
       const me = players.find(p => p.id === mySocketId), opp = players.find(p => p.id !== mySocketId);
@@ -1581,11 +1637,13 @@
       pos.x = Math.max(-WALL + 1, Math.min(WALL - 1, pos.x)); pos.z = Math.max(-WALL + 1, Math.min(WALL - 1, pos.z));
       for (const b of bldgs) { const dx = pos.x - b.x, dz = pos.z - b.z, px = b.hw + .8 - Math.abs(dx), pz = b.hz + .8 - Math.abs(dz); if (px > 0 && pz > 0) { if (px < pz) pos.x += dx > 0 ? px : -px; else pos.z += dz > 0 ? pz : -pz; } }
       for (const pb of placedBlocks) { const b = pb.box; if (camera.position.y - 1.7 > b.maxY || camera.position.y < b.minY) continue; const dx = pos.x - b.x, dz = pos.z - b.z, px = b.hw + .8 - Math.abs(dx), pz = b.hz + .8 - Math.abs(dz); if (px > 0 && pz > 0) { if (px < pz) pos.x += dx > 0 ? px : -px; else pos.z += dz > 0 ? pz : -pz; } }
+      collidePushWalls(pos);
     }
     function collidePushE(ex, ez, er) {
       let x = ex, z = ez;
       for (const b of bldgs) { const dx = x - b.x, dz = z - b.z, px = b.hw + er - Math.abs(dx), pz = b.hz + er - Math.abs(dz); if (px > 0 && pz > 0) { if (px < pz) x += dx > 0 ? px : -px; else z += dz > 0 ? pz : -pz; } }
       for (const pb of placedBlocks) { const b = pb.box; const dx = x - b.x, dz = z - b.z, px = b.hw + er - Math.abs(dx), pz = b.hz + er - Math.abs(dz); if (px > 0 && pz > 0) { if (px < pz) x += dx > 0 ? px : -px; else z += dz > 0 ? pz : -pz; } }
+      for (const w of placedWalls) { if (w.tiles.every(t => !t)) continue; const b = wallToCollisionBox(w); const dx = x - b.x, dz = z - b.z, px = b.hw + er - Math.abs(dx), pz = b.hz + er - Math.abs(dz); if (px > 0 && pz > 0) { if (px < pz) x += dx > 0 ? px : -px; else z += dz > 0 ? pz : -pz; } }
       return { x: Math.max(-WALL + er, Math.min(WALL - er, x)), z: Math.max(-WALL + er, Math.min(WALL - er, z)) };
     }
 
@@ -1632,10 +1690,17 @@
       setTimeout(() => { el.style.opacity = 0; setTimeout(() => { if (el.parentNode) kf.removeChild(el); const i = kfE.indexOf(el); if (i >= 0) kfE.splice(i, 1); }, 400); }, 3500);
     }
     function setTool(t) {
-      tool = t; document.getElementById('ws1').classList.toggle('sel', t === 1); document.getElementById('ws2').classList.toggle('sel', t === 2);
-      document.getElementById('xh').className = t === 1 ? 'gun' : 'build'; document.getElementById('xhdot').style.display = t === 1 ? 'block' : 'none';
-      if (gunMesh) gunMesh.visible = t === 1; if (blockHandMesh) blockHandMesh.visible = t === 2;
+      if (editWallIdx >= 0) exitEditMode(false); // exit edit if switching tool
+      tool = t;
+      document.getElementById('ws1').classList.toggle('sel', t === 1);
+      document.getElementById('ws2').classList.toggle('sel', t === 2);
+      document.getElementById('ws3').classList.toggle('sel', t === 3);
+      document.getElementById('xh').className = t === 1 ? 'gun' : t === 2 ? 'build' : 'wall';
+      document.getElementById('xhdot').style.display = t === 1 ? 'block' : 'none';
+      if (gunMesh) gunMesh.visible = t === 1;
+      if (blockHandMesh) blockHandMesh.visible = t === 2;
       if (t !== 2) { ghostMesh.visible = ghostWire.visible = false; document.getElementById('ghostlbl').classList.remove('show'); }
+      if (t !== 3) { removeWallGhost(); }
     }
     function doGameOver(isMP = false, iWon = false, winnerName = '', loserName = '', forfeit = false) {
       isDead = true; gameRunning = false; if (document.pointerLockElement) document.exitPointerLock();
@@ -1673,6 +1738,7 @@
         const b = BULLETS[i]; b.position.addScaledVector(b.userData.dir, .85 * dt); b.userData.life -= dt;
         let rm = b.userData.life <= 0;
         if (!rm) { for (const pb of placedBlocks) { const bx = pb.box; if (b.position.x > bx.x - bx.hw && b.position.x < bx.x + bx.hw && b.position.y > bx.minY && b.position.y < bx.maxY && b.position.z > bx.z - bx.hz && b.position.z < bx.z + bx.hz) { rm = true; break; } } }
+        if (!rm && bulletHitsWall(b.position)) { rm = true; }
         if (!rm) {
           if (isMultiplayer) {
             if (opponentMesh) { const ep = opponentMesh.position.clone(); ep.y += 1.0; if (b.position.distanceTo(ep) < 1.2) { rm = true; socket.emit('hit_opponent', { damage: 20 }); flashKill(); playSfxKill(); addKillFeed('🎯 HIT LANDED!'); } }
@@ -1705,7 +1771,393 @@
       for (const s of STATIONS) { const d = Math.hypot(camera.position.x - s.position.x, camera.position.z - s.position.z); s.userData.pl.intensity = 1.5 + Math.sin(t / 380) * .5; s.rotation.y += .012 * dt; if (d < 4) { nearSt = true; nearStObj = s; } }
       if (nearStObj) { nearStObj.userData.pl.intensity = 3 + Math.sin(t / 180) * .8; nearStObj.rotation.y += .03 * dt; if (pEN < 100) { pEN = Math.min(100, pEN + .03 * dt); updateUI(); } }
       document.getElementById('ipr').style.opacity = nearSt ? 1 : 0;
-      animHand(dt); updateGhost();
+      animHand(dt); updateGhost(); updateWallGhost();
+    }
+
+
+    // ══════════════════════════════════════════
+    //  FORTNITE-STYLE WALL BUILDING SYSTEM
+    // ══════════════════════════════════════════
+
+    const WGRID = 4;
+    const WALL_W = WGRID;
+    const WALL_H = 3.2;
+    const WALL_T = 0.22;
+
+    // placedWalls[]: { group, tiles[9 bool], cx,cy,cz, axis:'x'|'z' }
+    const placedWalls = [];
+    let wallGhostGroup = null;
+
+    // Edit state
+    let editWallIdx = -1;
+    let editTiles = null;   // working copy of tiles during edit
+    let editDirty = false;
+    let editDragMode = null;   // true=painting solid, false=painting cut
+    let editTileMeshes = [];   // THREE.Mesh[] overlaid on the wall face
+
+    // Turbo-place
+    let wallHoldInterval = null;
+
+    // ── SNAP ──────────────────────────────────
+    function getWallSnap() {
+      if (!camera) return null;
+      const rd = new THREE.Vector3(); camera.getWorldDirection(rd);
+      const reach = 5.5;
+      const ax = camera.position.x + rd.x * reach;
+      const az = camera.position.z + rd.z * reach;
+      const axis = Math.abs(rd.x) > Math.abs(rd.z) ? 'z' : 'x';
+      const cx = Math.round(ax / WGRID) * WGRID;
+      const cz = Math.round(az / WGRID) * WGRID;
+      return { cx, cy: WALL_H / 2, cz, axis };
+    }
+
+    function wallOccupied(cx, cz, axis) {
+      return placedWalls.some(w =>
+        Math.abs(w.cx - cx) < 0.1 && Math.abs(w.cz - cz) < 0.1 && w.axis === axis);
+    }
+
+    // ── PLAIN SLAB (freshly placed, no edit yet) ──
+    function buildWallSlab(cx, cy, cz, axis) {
+      const g = new THREE.Group();
+      const geo = axis === 'z'
+        ? new THREE.BoxGeometry(WALL_T, WALL_H, WALL_W)
+        : new THREE.BoxGeometry(WALL_W, WALL_H, WALL_T);
+      g.add(new THREE.Mesh(geo, new THREE.MeshLambertMaterial({ color: 0x3a7ad4 })));
+      g.add(new THREE.Mesh(geo.clone(),
+        new THREE.MeshBasicMaterial({
+          color: 0x66ccff, wireframe: true,
+          transparent: true, opacity: 0.3
+        })));
+      g.position.set(cx, cy, cz);
+      return g;
+    }
+
+    // ── SEGMENTED mesh (after edit — only solid tiles rendered) ──
+    // World index layout: row 0=bottom … row 2=top, col 0=world-min … col 2=world-max
+    function buildWallSegmented(cx, cy, cz, axis, tiles) {
+      const g = new THREE.Group();
+      const tW = WALL_W / 3, tH = WALL_H / 3;
+      const mat = new THREE.MeshLambertMaterial({ color: 0x3a7ad4 });
+      const edM = new THREE.MeshBasicMaterial({ color: 0x66ccff, wireframe: true, transparent: true, opacity: 0.3 });
+      for (let row = 0; row < 3; row++) {
+        for (let col = 0; col < 3; col++) {
+          if (!tiles[row * 3 + col]) continue;
+          const py = -WALL_H / 2 + tH / 2 + row * tH;
+          let geo, px, pz;
+          if (axis === 'z') {
+            geo = new THREE.BoxGeometry(WALL_T, tH, tW);
+            px = 0; pz = -WALL_W / 2 + tW / 2 + col * tW;
+          } else {
+            geo = new THREE.BoxGeometry(tW, tH, WALL_T);
+            px = -WALL_W / 2 + tW / 2 + col * tW; pz = 0;
+          }
+          const m = new THREE.Mesh(geo, mat); m.position.set(px, py, pz); g.add(m);
+          const e = new THREE.Mesh(geo.clone(), edM); e.position.set(px, py, pz); g.add(e);
+        }
+      }
+      g.position.set(cx, cy, cz);
+      return g;
+    }
+
+    // ── GHOST PREVIEW ─────────────────────────
+    function buildWallGhostMesh(cx, cy, cz, axis, valid) {
+      if (wallGhostGroup) { scene.remove(wallGhostGroup); wallGhostGroup = null; }
+      const col = valid ? 0x44aaff : 0xff4444;
+      const geo = axis === 'z'
+        ? new THREE.BoxGeometry(WALL_T, WALL_H, WALL_W)
+        : new THREE.BoxGeometry(WALL_W, WALL_H, WALL_T);
+      const g = new THREE.Group();
+      g.add(new THREE.Mesh(geo,
+        new THREE.MeshLambertMaterial({ color: col, transparent: true, opacity: 0.32, depthWrite: false })));
+      g.add(new THREE.Mesh(geo.clone(),
+        new THREE.MeshBasicMaterial({ color: col, wireframe: true, transparent: true, opacity: 0.65 })));
+      g.position.set(cx, cy, cz);
+      scene.add(g);
+      wallGhostGroup = g;
+    }
+    function removeWallGhost() {
+      if (wallGhostGroup) { scene.remove(wallGhostGroup); wallGhostGroup = null; }
+    }
+
+    // ── PLACE / TURBO ─────────────────────────
+    function placeWall() {
+      const snap = getWallSnap();
+      if (!snap) return;
+      if (wallOccupied(snap.cx, snap.cz, snap.axis)) return;
+      const tiles = new Array(9).fill(true);
+      const grp = buildWallSlab(snap.cx, snap.cy, snap.cz, snap.axis);
+      scene.add(grp);
+      placedWalls.push({ group: grp, tiles, cx: snap.cx, cy: snap.cy, cz: snap.cz, axis: snap.axis });
+      playSfxPlace();
+      handSwing = 5;
+    }
+    function startTurboWall() { placeWall(); wallHoldInterval = setInterval(placeWall, 90); }
+    function stopTurboWall() { if (wallHoldInterval) { clearInterval(wallHoldInterval); wallHoldInterval = null; } }
+
+    // ── COLLISION BOX ─────────────────────────
+    function wallToCollisionBox(w) {
+      return {
+        x: w.cx, z: w.cz,
+        hw: w.axis === 'z' ? WALL_T / 2 : WALL_W / 2,
+        hz: w.axis === 'z' ? WALL_W / 2 : WALL_T / 2,
+        minY: 0, maxY: WALL_H
+      };
+    }
+
+    // Per-tile walkthrough: returns true if player body can pass through this wall
+    // The player body is ~0.8 wide. A tile is WALL_W/3 ≈ 1.33 wide.
+    // We need at least 2 adjacent cut tiles in the same row at head height.
+    function playerCanPassWall(w, pos) {
+      // Which column(s) does the player overlap?
+      const tW = WALL_W / 3;
+      const wallMinAlong = (w.axis === 'z' ? w.cz : w.cx) - WALL_W / 2;
+      const playerAlong = w.axis === 'z' ? pos.z : pos.x;
+      // Player half-width in the along direction
+      const pHalf = 0.42;
+      const pMin = playerAlong - pHalf;
+      const pMax = playerAlong + pHalf;
+
+      // Which rows does the player's mid-body span? (camera.y=1.7, legs from 0 to 1.7)
+      // We check the two body rows: row 0 (0–tH) and row 1 (tH–2tH)
+      const tH = WALL_H / 3;
+      const bodyRows = [0, 1]; // bottom two rows = player body + head fits through bottom 2 rows
+
+      for (const row of bodyRows) {
+        // Find all cols the player overlaps
+        let allCut = true;
+        let anyOverlap = false;
+        for (let col = 0; col < 3; col++) {
+          const cMin = wallMinAlong + col * tW;
+          const cMax = cMin + tW;
+          if (pMax > cMin && pMin < cMax) {
+            anyOverlap = true;
+            if (w.tiles[row * 3 + col]) { allCut = false; break; } // solid tile in player path
+          }
+        }
+        if (anyOverlap && !allCut) return false; // blocked by at least one solid tile in this row
+      }
+      return true; // all overlapping tiles in both body rows are cut
+    }
+
+    function collidePushWalls(pos) {
+      for (const w of placedWalls) {
+        if (w.tiles.every(t => !t)) continue;
+        if (playerCanPassWall(w, pos)) continue; // gap is big enough
+        const box = wallToCollisionBox(w);
+        if (camera.position.y - 1.7 > box.maxY) continue;
+        const dx = pos.x - box.x, dz = pos.z - box.z;
+        const px = box.hw + 0.6 - Math.abs(dx), pz = box.hz + 0.6 - Math.abs(dz);
+        if (px > 0 && pz > 0) { if (px < pz) pos.x += dx > 0 ? px : -px; else pos.z += dz > 0 ? pz : -pz; }
+      }
+    }
+
+    // ── BULLET vs WALL ────────────────────────
+    function bulletHitsWall(bpos) {
+      for (const w of placedWalls) {
+        const box = wallToCollisionBox(w);
+        if (bpos.x > box.x - box.hw && bpos.x < box.x + box.hw &&
+          bpos.y > box.minY && bpos.y < box.maxY &&
+          bpos.z > box.z - box.hz && bpos.z < box.z + box.hz) {
+          const tW = WALL_W / 3, tH = WALL_H / 3;
+          const uRaw = w.axis === 'z'
+            ? (bpos.z - (w.cz - WALL_W / 2)) / tW
+            : (bpos.x - (w.cx - WALL_W / 2)) / tW;
+          const col = Math.floor(Math.max(0, Math.min(2.99, uRaw)));
+          const row = Math.floor(Math.max(0, Math.min(2.99, bpos.y / tH)));
+          if (w.tiles[row * 3 + col]) return true;
+        }
+      }
+      return false;
+    }
+
+    // ── RAYCAST to aimed wall ─────────────────
+    function getAimedWallIdx() {
+      const ro = camera.position.clone();
+      const rd = new THREE.Vector3(); camera.getWorldDirection(rd);
+      let best = Infinity, bestIdx = -1;
+      placedWalls.forEach((w, i) => {
+        const r = rayAABB(ro, rd, wallToCollisionBox(w));
+        if (r && r.t < best && r.t < 7) { best = r.t; bestIdx = i; }
+      });
+      return bestIdx;
+    }
+
+    // ── IN-WORLD EDIT MODE ────────────────────
+    // Instead of a 2D overlay, we spawn 9 flat planes directly on the wall face.
+    // Mouse controls are re-mapped: mousemove raycasts against these planes.
+
+    const editRaycaster = new THREE.Raycaster();
+    let editMouseNDC = new THREE.Vector2(0, 0); // updated on mousemove
+
+    function enterEditMode(wallIdx) {
+      if (editWallIdx >= 0) exitEditMode(false);
+      editWallIdx = wallIdx;
+      editTiles = [...placedWalls[wallIdx].tiles];
+      editDirty = false;
+      editDragMode = null;
+      editTileMeshes = [];
+
+      const w = placedWalls[wallIdx];
+
+      // Build 9 interactive tile planes ON the wall face
+      const tW = WALL_W / 3, tH = WALL_H / 3;
+      const TILE_DEPTH = 0.05;
+      const faceOffset = WALL_T / 2 + TILE_DEPTH / 2 + 0.01; // slightly in front of wall face
+
+      for (let row = 0; row < 3; row++) {
+        for (let col = 0; col < 3; col++) {
+          const worldIdx = row * 3 + col;
+          const isSolid = editTiles[worldIdx];
+          const py = -WALL_H / 2 + tH / 2 + row * tH;
+
+          let geo, px, pz;
+          if (w.axis === 'z') {
+            geo = new THREE.BoxGeometry(TILE_DEPTH, tH - 0.04, tW - 0.04);
+            px = faceOffset; // face +X side
+            pz = -WALL_W / 2 + tW / 2 + col * tW;
+          } else {
+            geo = new THREE.BoxGeometry(tW - 0.04, tH - 0.04, TILE_DEPTH);
+            px = -WALL_W / 2 + tW / 2 + col * tW;
+            pz = faceOffset; // face +Z side
+          }
+
+          const color = isSolid ? 0x2266ee : 0x333344;
+          const mat = new THREE.MeshBasicMaterial({
+            color, transparent: true, opacity: isSolid ? 0.72 : 0.38,
+            depthWrite: false, side: THREE.DoubleSide
+          });
+          const mesh = new THREE.Mesh(geo, mat);
+          mesh.position.set(px, py, pz);
+          mesh.userData = { worldIdx, row, col };
+
+          w.group.add(mesh);
+          editTileMeshes.push(mesh);
+        }
+      }
+
+      // Also add tiles on the BACK face so edit is visible from both sides
+      for (let row = 0; row < 3; row++) {
+        for (let col = 0; col < 3; col++) {
+          const worldIdx = row * 3 + col;
+          const isSolid = editTiles[worldIdx];
+          const py = -WALL_H / 2 + tH / 2 + row * tH;
+          let geo, px, pz;
+          if (w.axis === 'z') {
+            geo = new THREE.BoxGeometry(TILE_DEPTH, tH - 0.04, tW - 0.04);
+            px = -faceOffset; pz = -WALL_W / 2 + tW / 2 + col * tW;
+          } else {
+            geo = new THREE.BoxGeometry(tW - 0.04, tH - 0.04, TILE_DEPTH);
+            px = -WALL_W / 2 + tW / 2 + col * tW; pz = -faceOffset;
+          }
+          const mat = new THREE.MeshBasicMaterial({
+            color: isSolid ? 0x2266ee : 0x333344,
+            transparent: true, opacity: isSolid ? 0.55 : 0.25,
+            depthWrite: false, side: THREE.DoubleSide
+          });
+          const mesh = new THREE.Mesh(geo, mat);
+          mesh.position.set(px, py, pz);
+          mesh.userData = { worldIdx, row, col, back: true };
+          w.group.add(mesh);
+          editTileMeshes.push(mesh);
+        }
+      }
+
+      document.getElementById('edit-hint').classList.add('on');
+      showNtf('EDIT MODE — CLICK TILES · RELEASE TO CONFIRM', '#4af');
+    }
+
+    function refreshEditTileColors() {
+      editTileMeshes.forEach(mesh => {
+        const { worldIdx, back } = mesh.userData;
+        const solid = editTiles[worldIdx];
+        mesh.material.color.setHex(solid ? 0x2266ee : 0x333344);
+        mesh.material.opacity = solid ? (back ? 0.55 : 0.72) : (back ? 0.25 : 0.38);
+      });
+    }
+
+    function exitEditMode(confirm) {
+      if (editWallIdx < 0) return;
+      document.getElementById('edit-hint').classList.remove('on');
+      editDragMode = null;
+
+      // Remove tile meshes from wall group
+      editTileMeshes.forEach(m => placedWalls[editWallIdx].group.remove(m));
+      editTileMeshes = [];
+
+      if (confirm && editDirty) applyWallEdit(editWallIdx, editTiles);
+
+      editWallIdx = -1;
+      editTiles = null;
+      editDirty = false;
+    }
+
+    function applyWallEdit(wallIdx, tiles) {
+      const w = placedWalls[wallIdx];
+      w.tiles = [...tiles];
+      scene.remove(w.group);
+      w.group = tiles.every(t => t)
+        ? buildWallSlab(w.cx, w.cy, w.cz, w.axis)
+        : buildWallSegmented(w.cx, w.cy, w.cz, w.axis, tiles);
+      scene.add(w.group);
+      playSfxPlace();
+    }
+
+    function resetWallEdit(wallIdx) {
+      if (wallIdx < 0 || wallIdx >= placedWalls.length) return;
+      // If currently editing this wall, refresh tiles in 3D
+      if (editWallIdx === wallIdx) {
+        editTiles = new Array(9).fill(true);
+        editDirty = true;
+        refreshEditTileColors();
+      } else {
+        applyWallEdit(wallIdx, new Array(9).fill(true));
+      }
+    }
+
+    // Raycast edit tiles using pointer-lock mouse delta accumulated into NDC
+    function raycastEditTile() {
+      if (editWallIdx < 0 || editTileMeshes.length === 0) return -1;
+      // Always cast from screen center — that's where the crosshair is
+      editRaycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
+      // Filter to front-face tiles only (not back)
+      const frontMeshes = editTileMeshes.filter(m => !m.userData.back);
+      const hits = editRaycaster.intersectObjects(frontMeshes, false);
+      if (hits.length === 0) {
+        // try back faces too
+        const allHits = editRaycaster.intersectObjects(editTileMeshes, false);
+        if (allHits.length === 0) return -1;
+        return allHits[0].object.userData.worldIdx;
+      }
+      return hits[0].object.userData.worldIdx;
+    }
+
+    function handleEditClick() {
+      const idx = raycastEditTile();
+      if (idx < 0) { exitEditMode(true); return; } // clicked outside wall = confirm
+      editDragMode = !editTiles[idx]; // flip: solid→cut mode, cut→solid mode
+      editTiles[idx] = editDragMode;
+      editDirty = true;
+      refreshEditTileColors();
+    }
+
+    function handleEditDrag() {
+      if (editDragMode === null) return;
+      const idx = raycastEditTile();
+      if (idx < 0) return;
+      if (editTiles[idx] !== editDragMode) {
+        editTiles[idx] = editDragMode;
+        editDirty = true;
+        refreshEditTileColors();
+      }
+    }
+
+    // ── GHOST UPDATE ──────────────────────────
+    function updateWallGhost() {
+      if (tool !== 3 || editWallIdx >= 0) { removeWallGhost(); return; }
+      const snap = getWallSnap();
+      if (!snap) { removeWallGhost(); return; }
+      const valid = !wallOccupied(snap.cx, snap.cz, snap.axis);
+      buildWallGhostMesh(snap.cx, snap.cy, snap.cz, snap.axis, valid);
     }
 
     // ── MINIMAP ───────────────────────────────────────────────
@@ -1728,20 +2180,59 @@
     }
 
     // ── INPUT ─────────────────────────────────────────────────
+    // During edit mode the pointer stays locked.
+    // We accumulate movementX/Y to drive a virtual cursor in NDC space for raycasting.
+
+
     document.addEventListener('keydown', e => {
       const k = e.key.toLowerCase(); keys[k] = true;
-      if (k === '1') setTool(1); if (k === '2') setTool(2);
+      if (k === '1') setTool(1);
+      if (k === '2') setTool(2);
+      if (k === 'z' && gameRunning && !quizActive) setTool(3);
+      if (k === 'q' && gameRunning && !quizActive) {
+        if (editWallIdx >= 0) { exitEditMode(true); }
+        else { const idx = getAimedWallIdx(); if (idx >= 0) { enterEditMode(idx); } }
+      }
+      if (k === 'escape' && editWallIdx >= 0) exitEditMode(false);
       if (k === 'f' && tool === 2 && gameRunning && !quizActive) removeBlock();
       if (k === 'e' && nearSt && !quizActive && gameRunning) startQuiz(() => { pEN = 100; updateUI(); showNtf('⚡ ENERGY FULLY RESTORED', '#0ff'); });
     });
     document.addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
-    document.addEventListener('mousemove', e => { if (document.pointerLockElement === gc) { mdx += e.movementX; mdy += e.movementY; } });
+
+    document.addEventListener('mousemove', e => {
+      if (document.pointerLockElement !== gc) return;
+      // Camera always moves
+      mdx += e.movementX; mdy += e.movementY;
+      // Tile under crosshair = screen center, always NDC (0,0)
+      if (editWallIdx >= 0) handleEditDrag();
+    });
+
     gc.addEventListener('mousedown', e => {
       if (!gameRunning || quizActive) return;
       if (document.pointerLockElement !== gc) { gc.requestPointerLock(); return; }
-      if (e.button === 0) shooting = true; if (e.button === 2 && tool === 2) placeBlock();
+      if (e.button === 0) {
+        if (editWallIdx >= 0) { handleEditClick(); }
+        else if (tool === 3) { startTurboWall(); }
+        else { shooting = true; }
+      }
+      if (e.button === 2 && tool === 2) placeBlock();
     });
-    gc.addEventListener('mouseup', e => { if (e.button === 0) shooting = false; });
+
+    gc.addEventListener('mouseup', e => {
+      if (e.button === 0) {
+        if (editWallIdx >= 0) { editDragMode = null; exitEditMode(true); }
+        else { shooting = false; stopTurboWall(); }
+      }
+    });
+
+    gc.addEventListener('wheel', e => {
+      if (!gameRunning || quizActive) return;
+      if (e.deltaY > 0) {
+        if (editWallIdx >= 0) { resetWallEdit(editWallIdx); }
+        else { const idx = getAimedWallIdx(); if (idx >= 0) resetWallEdit(idx); }
+      }
+    }, { passive: true });
+
     gc.addEventListener('contextmenu', e => e.preventDefault());
     gc.addEventListener('click', () => { if (gameRunning && !quizActive && document.pointerLockElement !== gc) gc.requestPointerLock(); });
     window.addEventListener('resize', () => { if (!renderer) return; renderer.setSize(innerWidth, innerHeight); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); });

@@ -1163,6 +1163,173 @@
       color: rgba(0, 255, 255, .5);
       min-height: 18px;
     }
+
+    /* MOBILE CONTROLS */
+    #mobile-controls {
+      display: none;
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 15;
+    }
+
+    #joystick-zone {
+      position: absolute;
+      bottom: 40px;
+      left: 30px;
+      width: 130px;
+      height: 130px;
+      pointer-events: auto;
+    }
+
+    #joystick-base {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, .08);
+      border: 2px solid rgba(255, 255, 255, .2);
+    }
+
+    #joystick-knob {
+      position: absolute;
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      background: rgba(0, 255, 255, .35);
+      border: 2px solid #0ff;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      transition: none;
+    }
+
+    #look-zone {
+      position: absolute;
+      bottom: 0;
+      right: 0;
+      width: 55%;
+      height: 70%;
+      pointer-events: auto;
+    }
+
+    #fire-btn {
+      position: absolute;
+      bottom: 50px;
+      right: 160px;
+      width: 70px;
+      height: 70px;
+      border-radius: 50%;
+      background: rgba(255, 50, 50, .3);
+      border: 2px solid #f44;
+      color: #f44;
+      font-family: 'Orbitron', monospace;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: auto;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    #jump-btn {
+      position: absolute;
+      bottom: 50px;
+      right: 80px;
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      background: rgba(0, 255, 136, .15);
+      border: 2px solid #0f8;
+      color: #0f8;
+      font-family: 'Orbitron', monospace;
+      font-size: 9px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: auto;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    #tool-btns {
+      position: absolute;
+      top: 80px;
+      right: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      pointer-events: auto;
+    }
+
+    .tool-btn {
+      width: 52px;
+      height: 52px;
+      border-radius: 8px;
+      background: rgba(0, 0, 0, .6);
+      border: 2px solid rgba(255, 255, 255, .2);
+      color: #fff;
+      font-size: 22px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    .tool-btn.active {
+      border-color: #fff;
+      background: rgba(255, 255, 255, .18);
+    }
+
+    #interact-btn {
+      position: absolute;
+      bottom: 160px;
+      left: 180px;
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: rgba(0, 255, 255, .15);
+      border: 2px solid #0ff;
+      color: #0ff;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 1px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: auto;
+      user-select: none;
+      -webkit-user-select: none;
+      opacity: 0;
+      transition: opacity .2s;
+    }
+
+    #interact-btn.show {
+      opacity: 1;
+    }
+
+    #flashlight-btn {
+      position: absolute;
+      bottom: 160px;
+      right: 80px;
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      background: rgba(170, 200, 255, .15);
+      border: 2px solid #aaddff;
+      color: #aaddff;
+      font-size: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: auto;
+      user-select: none;
+      -webkit-user-select: none;
+    }
   </style>
 </head>
 
@@ -1222,6 +1389,22 @@
   <div id="ntf"></div>
   <div id="ipr">[E] RECHARGE TERMINAL</div>
   <div id="ghostlbl">RIGHT-CLICK TO PLACE · F TO REMOVE</div>
+  <div id="mobile-controls">
+    <div id="joystick-zone">
+      <div id="joystick-base"></div>
+      <div id="joystick-knob"></div>
+    </div>
+    <div id="look-zone"></div>
+    <div id="fire-btn">FIRE</div>
+    <div id="jump-btn">🧱</div>
+    <div id="tool-btns">
+      <div class="tool-btn active" id="mtool1">🔫</div>
+      <div class="tool-btn" id="mtool2">🧱</div>
+      <div class="tool-btn" id="mtool3">▬</div>
+    </div>
+    <div id="interact-btn">E</div>
+    <div id="flashlight-btn">🔦</div>
+  </div>
   <div id="musicbar">
     <button id="mute-btn" class="active" onclick="toggleMute()">♪ ON</button>
     <input type="range" id="vol-slider" min="0" max="100" value="55" oninput="setVol(this.value)">
@@ -1638,7 +1821,7 @@
       loadZombieAssets(() => {
         document.getElementById('loadscreen').classList.remove('on');
         initMusic(); isMultiplayer = false;
-        initR(); buildWorld(); buildStations(); buildFPHand(); doWave(1);
+        initR(); buildWorld(); buildStations(); buildFPHand(); initMobileControls(); doWave(1);
         gameRunning = true; gc.requestPointerLock(); requestAnimationFrame(loop);
       });
     }
@@ -1647,7 +1830,7 @@
 
     function startMPGame(players) {
       initMusic(); document.getElementById('start').style.display = 'none';
-      isMultiplayer = true; initR(); buildWorld(); buildStations(); buildFPHand();
+      isMultiplayer = true; initR(); buildWorld(); buildStations(); buildFPHand(); initMobileControls();
       const me = players.find(p => p.id === mySocketId), opp = players.find(p => p.id !== mySocketId);
       if (me) { camera.position.set(me.position.x, me.position.y, me.position.z); yaw = me.rotation.yaw || 0; }
       if (opp) { document.getElementById('oppill').style.display = 'block'; document.getElementById('oplbl').textContent = opp.username + ' HP'; spawnOppMesh(opp.position, opp.rotation); }
@@ -1987,6 +2170,7 @@
       const spd = 0.14 * dt, fwd = new THREE.Vector3(-Math.sin(yaw), 0, -Math.cos(yaw)), rgt = new THREE.Vector3(Math.cos(yaw), 0, -Math.sin(yaw)), np = camera.position.clone();
       if (keys['w'] || keys['arrowup']) np.addScaledVector(fwd, spd); if (keys['s'] || keys['arrowdown']) np.addScaledVector(fwd, -spd);
       if (keys['a'] || keys['arrowleft']) np.addScaledVector(rgt, -spd); if (keys['d'] || keys['arrowright']) np.addScaledVector(rgt, spd);
+      if (isMobile && joy.active) { np.addScaledVector(fwd, joy.dz * -spd * 1.4); np.addScaledVector(rgt, joy.dx * spd * 1.4); }
       np.y = 1.7; collidePush(np); camera.position.copy(np);
       if (shooting && sCD <= 0 && tool === 1) { fireBullet(); sCD = 9; } sCD -= dt;
       if (isMultiplayer && socket) { netUpdateTimer += dt; if (netUpdateTimer >= 3) { netUpdateTimer = 0; socket.emit('player_update', { position: { x: camera.position.x, y: camera.position.y, z: camera.position.z }, rotation: { yaw, pitch } }); } }
@@ -2061,7 +2245,7 @@
       }
       if (nearStObj) { nearStObj.userData.pl.intensity = 3 + Math.sin(t / 180) * .8; nearStObj.rotation.y += .03 * dt; if (pEN < 100) { pEN = Math.min(100, pEN + .03 * dt); updateUI(); } }
       document.getElementById('ipr').style.opacity = nearSt ? 1 : 0;
-      animHand(dt); updateGhost(); updateWallGhost();
+      updateMobileInteract(); animHand(dt); updateGhost(); updateWallGhost();
     }
 
     // ══════════════════════════════════════════
@@ -2163,6 +2347,150 @@
     gc.addEventListener('contextmenu', e => e.preventDefault());
     gc.addEventListener('click', () => { if (gameRunning && !quizActive && document.pointerLockElement !== gc) gc.requestPointerLock(); });
     window.addEventListener('resize', () => { if (!renderer) return; renderer.setSize(innerWidth, innerHeight); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); });
+
+    // ── MOBILE CONTROLS ───────────────────────────────────────
+    const isMobile = /Android|iPhone|iPad|iPod|Touch/i.test(navigator.userAgent) || navigator.maxTouchPoints > 1;
+    if (isMobile) {
+      document.getElementById('mobile-controls').style.display = 'block';
+      document.getElementById('mmwrap').style.display = 'none';
+    }
+
+    const joy = { active: false, id: -1, startX: 0, startY: 0, dx: 0, dz: 0 };
+    const look = { active: false, id: -1, lastX: 0, lastY: 0 };
+    const JOY_MAX = 50;
+
+    function setupMobileControls() {
+      if (!isMobile) return;
+      const jZone = document.getElementById('joystick-zone');
+      const knob = document.getElementById('joystick-knob');
+      const lZone = document.getElementById('look-zone');
+      const fireBtn = document.getElementById('fire-btn');
+      const flashBtn = document.getElementById('flashlight-btn');
+      const interactBtn = document.getElementById('interact-btn');
+
+      jZone.addEventListener('touchstart', e => {
+        e.preventDefault();
+        const t = e.changedTouches[0];
+        const rect = jZone.getBoundingClientRect();
+        joy.active = true; joy.id = t.identifier;
+        joy.startX = rect.left + rect.width / 2;
+        joy.startY = rect.top + rect.height / 2;
+        joy.dx = 0; joy.dz = 0;
+      }, { passive: false });
+
+      jZone.addEventListener('touchmove', e => {
+        e.preventDefault();
+        for (const t of e.changedTouches) {
+          if (t.identifier !== joy.id) continue;
+          let dx = t.clientX - joy.startX;
+          let dy = t.clientY - joy.startY;
+          const len = Math.sqrt(dx * dx + dy * dy);
+          if (len > JOY_MAX) { dx = dx / len * JOY_MAX; dy = dy / len * JOY_MAX; }
+          joy.dx = dx / JOY_MAX;
+          joy.dz = dy / JOY_MAX;
+          knob.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
+        }
+      }, { passive: false });
+
+      const endJoy = e => {
+        for (const t of e.changedTouches) {
+          if (t.identifier !== joy.id) continue;
+          joy.active = false; joy.dx = 0; joy.dz = 0; joy.id = -1;
+          knob.style.transform = 'translate(-50%,-50%)';
+        }
+      };
+      jZone.addEventListener('touchend', endJoy, { passive: false });
+      jZone.addEventListener('touchcancel', endJoy, { passive: false });
+
+      lZone.addEventListener('touchstart', e => {
+        e.preventDefault();
+        for (const t of e.changedTouches) {
+          if (look.active) continue;
+          look.active = true; look.id = t.identifier;
+          look.lastX = t.clientX; look.lastY = t.clientY;
+        }
+      }, { passive: false });
+
+      lZone.addEventListener('touchmove', e => {
+        e.preventDefault();
+        for (const t of e.changedTouches) {
+          if (t.identifier !== look.id) continue;
+          const dx = t.clientX - look.lastX;
+          const dy = t.clientY - look.lastY;
+          look.lastX = t.clientX; look.lastY = t.clientY;
+          mdx += dx * 1.8;
+          mdy += dy * 1.8;
+        }
+      }, { passive: false });
+
+      const endLook = e => {
+        for (const t of e.changedTouches) {
+          if (t.identifier === look.id) { look.active = false; look.id = -1; }
+        }
+      };
+      lZone.addEventListener('touchend', endLook, { passive: false });
+      lZone.addEventListener('touchcancel', endLook, { passive: false });
+
+      fireBtn.addEventListener('touchstart', e => {
+        e.preventDefault();
+        if (!gameRunning || quizActive) return;
+        if (tool === 1) { shooting = true; }
+        else if (tool === 2) { placeBlock(); }
+        else if (tool === 3) { startTurboWall(); }
+      }, { passive: false });
+
+      fireBtn.addEventListener('touchend', e => {
+        e.preventDefault();
+        shooting = false; stopTurboWall();
+      }, { passive: false });
+
+      flashBtn.addEventListener('touchstart', e => {
+        e.preventDefault();
+        if (!gameRunning) return;
+        window.flashlightOn = !window.flashlightOn;
+        if (window.flashlightSpot) window.flashlightSpot.intensity = window.flashlightOn ? 20 : 0;
+        if (window.flashlightFill) window.flashlightFill.intensity = window.flashlightOn ? 3 : 0;
+        if (window.flashlightLens) window.flashlightLens.material.color.setHex(window.flashlightOn ? 0xffffff : 0x334455);
+        flashBtn.style.background = window.flashlightOn ? 'rgba(170,200,255,.4)' : 'rgba(170,200,255,.15)';
+      }, { passive: false });
+
+      interactBtn.addEventListener('touchstart', e => {
+        e.preventDefault();
+        if (!gameRunning || quizActive) return;
+        if (nearSt) startQuiz(() => { pEN = 100; updateUI(); showNtf('⚡ ENERGY FULLY RESTORED', '#0ff'); });
+      }, { passive: false });
+
+      document.getElementById('mtool1').addEventListener('touchstart', e => { e.preventDefault(); if (gameRunning) { setTool(1); updateMobileToolBtns(); } }, { passive: false });
+      document.getElementById('mtool2').addEventListener('touchstart', e => { e.preventDefault(); if (gameRunning) { setTool(2); updateMobileToolBtns(); } }, { passive: false });
+      document.getElementById('mtool3').addEventListener('touchstart', e => { e.preventDefault(); if (gameRunning) { setTool(3); updateMobileToolBtns(); } }, { passive: false });
+    }
+
+    function updateMobileToolBtns() {
+      ['mtool1', 'mtool2', 'mtool3'].forEach((id, i) => {
+        document.getElementById(id).classList.toggle('active', tool === i + 1);
+      });
+      const fireBtn = document.getElementById('fire-btn');
+      if (fireBtn) {
+        if (tool === 1) fireBtn.textContent = 'FIRE';
+        else if (tool === 2) fireBtn.textContent = 'PLACE';
+        else fireBtn.textContent = 'BUILD';
+      }
+    }
+
+    function updateMobileInteract() {
+      if (!isMobile) return;
+      const btn = document.getElementById('interact-btn');
+      if (btn) btn.classList.toggle('show', nearSt);
+    }
+
+    function initMobileControls() {
+      if (!isMobile) return;
+      setupMobileControls();
+      const flashBtn = document.getElementById('flashlight-btn');
+      if (flashBtn) flashBtn.style.background = 'rgba(170,200,255,.4)';
+    }
+
+  </script>
   </script>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>

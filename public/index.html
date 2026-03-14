@@ -1468,21 +1468,23 @@
     function loadZombieAssets(onReady) {
       const basePath = 'zombies/';
       setLoadStatus('LOADING BASE MESH...', 5);
-      fbxLoader.load(basePath + 'zombie walk.fbx', (fbx) => {
+      fbxLoader.load(basePath + 'Zombie Walk.fbx', (fbx) => {
         fbx.scale.setScalar(0.013);
         fbx.traverse(c => {
           if (c.isSkinnedMesh) { c.castShadow = true; c.frustumCulled = false; c.visible = true; }
         });
         zombieBaseMesh = fbx;
         if (fbx.animations.length > 0) { zombieAnimClips.walk = fbx.animations[0]; zombieAnimClips.walk.name = 'walk'; }
+
         const animsToLoad = [
-          { key: 'attack', file: 'zombie attack.fbx' },
-          { key: 'bite', file: 'zombie biting.fbx' },
-          { key: 'crawl', file: 'zombie crawl.fbx' },
-          { key: 'death', file: 'zombie death.fbx' },
-          { key: 'dying', file: 'zombie dying.fbx' },
-          { key: 'idle', file: 'zombie idle.fbx' },
+          { key: 'attack', file: 'Zombie Attack.fbx' },
+          { key: 'bite', file: 'Zombie Biting.fbx' },
+          { key: 'crawl', file: 'Zombie Crawl.fbx' },
+          { key: 'death', file: 'Zombie Death.fbx' },
+          { key: 'dying', file: 'Zombie Dying.fbx' },
+          { key: 'idle', file: 'Zombie Idle.fbx' },
         ];
+
         let loaded = 0; const total = animsToLoad.length;
         animsToLoad.forEach(({ key, file }) => {
           fbxLoader.load(basePath + file, (animFbx) => {
@@ -1506,6 +1508,7 @@
         zombieModelsReady = false; setLoadStatus('ZOMBIE MESH NOT FOUND — USING FALLBACK', 100); setTimeout(onReady, 600);
       });
     }
+
 
     function cloneZombieFBX() {
       const clone = THREE.SkeletonUtils.clone(zombieBaseMesh);
